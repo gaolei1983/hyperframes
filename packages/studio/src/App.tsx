@@ -1000,6 +1000,8 @@ export function StudioApp() {
   const toastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastBlockedTimelineToastAtRef = useRef(0);
   const lastBlockedDomMoveToastAtRef = useRef(0);
+  const selectedTimelineLayerRevealTimeRef = useRef<number | null>(null);
+  const selectedTimelineLayerRevealUntilRef = useRef(0);
   const importedFontAssetsRef = useRef<ImportedFontAsset[]>([]);
   const previewHotkeyWindowRef = useRef<Window | null>(null);
   const panelDragRef = useRef<{
@@ -1876,6 +1878,8 @@ export function StudioApp() {
   );
 
   const clearDomSelection = useCallback(() => {
+    selectedTimelineLayerRevealTimeRef.current = null;
+    selectedTimelineLayerRevealUntilRef.current = 0;
     setInspectedTimelineElementId(null);
     applyDomSelection(null, { revealPanel: false });
   }, [applyDomSelection]);
@@ -2096,10 +2100,72 @@ export function StudioApp() {
     domEditSelection &&
     (showInspectedTimelineBounds || selectedNestedTimelineLayer),
   );
+  const revealTimelineLayerElement = useCallback(
+    (element: HTMLElement, options?: { settle?: boolean; preferStoredTime?: boolean }) => {
+      const currentIframe = getCurrentPreviewIframe(previewIframeRef.current, previewIframe);
+      const player = getPreviewPlayer(currentIframe?.contentWindow);
+      const storedTime = selectedTimelineLayerRevealTimeRef.current;
+      const targetTime =
+        options?.preferStoredTime && storedTime != null
+          ? storedTime
+          : resolveLayerVisibleSeekTime(element, inspectedTimelineElement, player);
+      if (targetTime == null || !player) return;
+
+      selectedTimelineLayerRevealTimeRef.current = targetTime;
+      player.renderSeek(targetTime);
+      liveTime.notify(targetTime);
+      usePlayerStore.getState().setCurrentTime(targetTime);
+
+      if (options?.settle) {
+        selectedTimelineLayerRevealUntilRef.current = Date.now() + 2000;
+        window.setTimeout(
+          () => revealTimelineLayerElement(element, { preferStoredTime: true }),
+          50,
+        );
+        window.setTimeout(
+          () => revealTimelineLayerElement(element, { preferStoredTime: true }),
+          250,
+        );
+        window.setTimeout(
+          () => revealTimelineLayerElement(element, { preferStoredTime: true }),
+          750,
+        );
+        window.setTimeout(
+          () => revealTimelineLayerElement(element, { preferStoredTime: true }),
+          1500,
+        );
+      }
+    },
+    [inspectedTimelineElement, previewIframe],
+  );
+
+  // eslint-disable-next-line no-restricted-syntax
+  useEffect(() => {
+    if (!selectedNestedTimelineLayer || !domEditSelection) return;
+    if (selectedTimelineLayerRevealTimeRef.current == null) return;
+    if (Date.now() > selectedTimelineLayerRevealUntilRef.current) return;
+
+    const currentIframe = getCurrentPreviewIframe(previewIframeRef.current, previewIframe);
+    const doc = currentIframe?.contentDocument;
+    if (!doc) return;
+
+    const element = findElementForSelection(doc, domEditSelection, domEditSelection.sourceFile);
+    if (!element) return;
+
+    revealTimelineLayerElement(element, { preferStoredTime: true });
+  }, [
+    domEditSelection,
+    previewDocumentVersion,
+    previewIframe,
+    revealTimelineLayerElement,
+    selectedNestedTimelineLayer,
+  ]);
 
   const handleTimelineElementSelect = useCallback(
     (element: TimelineElement | null) => {
       if (!element) {
+        selectedTimelineLayerRevealTimeRef.current = null;
+        selectedTimelineLayerRevealUntilRef.current = 0;
         setInspectedTimelineElementId(null);
         applyDomSelection(null, { revealPanel: false });
         return;
@@ -2107,6 +2173,8 @@ export function StudioApp() {
 
       const elementKey = getTimelineElementKey(element);
       if (!elementKey || inspectedTimelineElementId !== elementKey) {
+        selectedTimelineLayerRevealTimeRef.current = null;
+        selectedTimelineLayerRevealUntilRef.current = 0;
         setInspectedTimelineElementId(null);
         applyDomSelection(null, { revealPanel: false, preserveTimelineSelection: true });
       }
@@ -2129,17 +2197,7 @@ export function StudioApp() {
       if (inspectedTimelineElementId) {
         setSelectedTimelineElementId(inspectedTimelineElementId);
       }
-      const currentIframe = getCurrentPreviewIframe(previewIframeRef.current, previewIframe);
-      const player = getPreviewPlayer(currentIframe?.contentWindow);
-      const targetTime = resolveLayerVisibleSeekTime(
-        layer.element,
-        inspectedTimelineElement,
-        player,
-      );
-      if (targetTime != null) {
-        liveTime.notify(targetTime);
-        usePlayerStore.getState().setCurrentTime(targetTime);
-      }
+      revealTimelineLayerElement(layer.element);
       const selection =
         resolveDomEditSelection(layer.element, {
           activeCompositionPath: layerInspectionCompositionPath,
@@ -2153,16 +2211,17 @@ export function StudioApp() {
     [
       applyDomSelection,
       buildDomSelectionFromTarget,
-      inspectedTimelineElement,
       inspectedTimelineElementId,
       layerInspectionCompositionPath,
-      previewIframe,
+      revealTimelineLayerElement,
       setSelectedTimelineElementId,
       showToast,
     ],
   );
 
   const handleTimelineLayerPanelClose = useCallback(() => {
+    selectedTimelineLayerRevealTimeRef.current = null;
+    selectedTimelineLayerRevealUntilRef.current = 0;
     setInspectedTimelineElementId(null);
     applyDomSelection(null, { revealPanel: false, preserveTimelineSelection: true });
   }, [applyDomSelection]);
@@ -2173,6 +2232,8 @@ export function StudioApp() {
       if (!elementKey) return;
 
       if (!canInspectTimelineElement(element)) {
+        selectedTimelineLayerRevealTimeRef.current = null;
+        selectedTimelineLayerRevealUntilRef.current = 0;
         setInspectedTimelineElementId(null);
         applyDomSelection(null, { revealPanel: false, preserveTimelineSelection: true });
         showToast(
@@ -2183,6 +2244,8 @@ export function StudioApp() {
       }
 
       if (inspectedTimelineElementId === elementKey) {
+        selectedTimelineLayerRevealTimeRef.current = null;
+        selectedTimelineLayerRevealUntilRef.current = 0;
         setInspectedTimelineElementId(null);
         applyDomSelection(null, { revealPanel: false, preserveTimelineSelection: true });
         return;
@@ -2422,9 +2485,11 @@ export function StudioApp() {
       const importedFont = property === "font-family" ? resolveImportedFontAsset(value) : null;
       const iframe = previewIframeRef.current;
       const doc = iframe?.contentDocument;
+      let liveElement: HTMLElement | null = null;
       if (doc) {
         const el = findElementForSelection(doc, domEditSelection, domEditSelection.sourceFile);
         if (el) {
+          liveElement = el;
           el.style.setProperty(property, normalizeDomEditStyleValue(property, value));
           if (property === "font-family") {
             injectPreviewGoogleFont(doc, value);
@@ -2462,8 +2527,29 @@ export function StudioApp() {
           ? (html, sourceFile) => ensureImportedFontFace(html, importedFont, sourceFile)
           : undefined,
       });
+      if (doc && liveElement) {
+        const refreshed = findElementForSelection(
+          doc,
+          domEditSelection,
+          domEditSelection.sourceFile,
+        );
+        if (refreshed) {
+          const nextSelection = buildDomSelectionFromTarget(refreshed);
+          if (nextSelection) {
+            applyDomSelection(nextSelection, { revealPanel: false });
+          }
+          revealTimelineLayerElement(refreshed, { preferStoredTime: true, settle: true });
+        }
+      }
     },
-    [domEditSelection, persistDomEditOperations, resolveImportedFontAsset],
+    [
+      applyDomSelection,
+      buildDomSelectionFromTarget,
+      domEditSelection,
+      persistDomEditOperations,
+      resolveImportedFontAsset,
+      revealTimelineLayerElement,
+    ],
   );
 
   const handleDomMotionCommit = useCallback(
@@ -2579,10 +2665,17 @@ export function StudioApp() {
           if (nextSelection) {
             applyDomSelection(nextSelection, { revealPanel: false });
           }
+          revealTimelineLayerElement(refreshed, { preferStoredTime: true, settle: true });
         }
       }
     },
-    [applyDomSelection, buildDomSelectionFromTarget, domEditSelection, persistDomEditOperations],
+    [
+      applyDomSelection,
+      buildDomSelectionFromTarget,
+      domEditSelection,
+      persistDomEditOperations,
+      revealTimelineLayerElement,
+    ],
   );
 
   const commitDomTextFields = useCallback(
@@ -2628,10 +2721,16 @@ export function StudioApp() {
           if (nextSelection) {
             applyDomSelection(nextSelection, { revealPanel: false });
           }
+          revealTimelineLayerElement(refreshed, { preferStoredTime: true, settle: true });
         }
       }
     },
-    [applyDomSelection, buildDomSelectionFromTarget, persistDomEditOperations],
+    [
+      applyDomSelection,
+      buildDomSelectionFromTarget,
+      persistDomEditOperations,
+      revealTimelineLayerElement,
+    ],
   );
 
   const handleDomTextFieldStyleCommit = useCallback(
