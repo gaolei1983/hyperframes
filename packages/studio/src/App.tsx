@@ -51,6 +51,7 @@ import {
 import { buildFrameCaptureFilename, buildFrameCaptureUrl } from "./utils/frameCapture";
 import { buildProjectHash, parseProjectIdFromHash } from "./utils/projectRouting";
 import { Camera } from "./icons/SystemIcons";
+import { AspectRatioSelector } from "./components/AspectRatioSelector";
 
 interface EditingFile {
   path: string;
@@ -151,6 +152,8 @@ export function StudioApp() {
   const captionEditMode = useCaptionStore((s) => s.isEditMode);
   const captionHasSelection = useCaptionStore((s) => s.selectedSegmentIds.size > 0);
   const captionSync = useCaptionSync(projectId);
+  const [compositionWidth, setCompositionWidth] = useState(1920);
+  const [compositionHeight, setCompositionHeight] = useState(1080);
 
   // Resizable and collapsible panel widths
   const [leftWidth, setLeftWidth] = useState(240);
@@ -321,6 +324,56 @@ export function StudioApp() {
     setCaptureFrameTime(usePlayerStore.getState().currentTime);
   }, []);
 
+  const handleAspectRatioChange = useCallback(
+    async (nextWidth: number, nextHeight: number) => {
+      const pid = projectIdRef.current;
+      if (!pid) return;
+      const targetPath = activeCompPath || "index.html";
+      try {
+        const response = await fetch(
+          `/api/projects/${pid}/files/${encodeURIComponent(targetPath)}`,
+        );
+        if (!response.ok) return;
+        const data = (await response.json()) as { content?: string };
+        if (typeof data.content !== "string") return;
+
+        const root =
+          previewIframeRef.current?.contentDocument?.querySelector("[data-composition-id]");
+        const compId = root?.getAttribute("data-composition-id");
+        if (!compId) return;
+
+        const target = { selector: `[data-composition-id="${compId}"]` };
+        let patched = applyPatchByTarget(data.content, target, {
+          type: "attribute",
+          property: "width",
+          value: String(nextWidth),
+        });
+        patched = applyPatchByTarget(patched, target, {
+          type: "attribute",
+          property: "height",
+          value: String(nextHeight),
+        });
+        if (patched === data.content) return;
+
+        const saveResponse = await fetch(
+          `/api/projects/${pid}/files/${encodeURIComponent(targetPath)}`,
+          { method: "PUT", headers: { "Content-Type": "text/plain" }, body: patched },
+        );
+        if (!saveResponse.ok) return;
+
+        setCompositionWidth(nextWidth);
+        setCompositionHeight(nextHeight);
+        if (editingPathRef.current === targetPath) {
+          setEditingFile({ path: targetPath, content: patched });
+        }
+        setRefreshKey((k) => k + 1);
+      } catch {
+        // network error — fail silently
+      }
+    },
+    [activeCompPath],
+  );
+
   useMountEffect(() => {
     setCaptureFrameTime(usePlayerStore.getState().currentTime);
     return liveTime.subscribe(setCaptureFrameTime);
@@ -351,6 +404,18 @@ export function StudioApp() {
     return () => {
       window.removeEventListener("keydown", handleTimelineToggleHotkey);
     };
+  });
+
+  useMountEffect(() => {
+    const handleStageSize = (e: MessageEvent) => {
+      const data = e.data;
+      if (data?.type === "stage-size" && data.width > 0 && data.height > 0) {
+        setCompositionWidth(data.width);
+        setCompositionHeight(data.height);
+      }
+    };
+    window.addEventListener("message", handleStageSize);
+    return () => window.removeEventListener("message", handleStageSize);
   });
 
   const syncPreviewTimelineHotkey = useCallback(
@@ -1439,6 +1504,11 @@ export function StudioApp() {
         </div>
         {/* Right: toolbar buttons */}
         <div className="flex items-center gap-1.5">
+          <AspectRatioSelector
+            width={compositionWidth}
+            height={compositionHeight}
+            onChange={handleAspectRatioChange}
+          />
           <a
             href={captureFrameHref}
             download={captureFrameFilename}
@@ -1629,12 +1699,28 @@ export function StudioApp() {
                   // cross-origin — can't attach
                 }
               };
+              const detectDimensions = () => {
+                try {
+                  const root = iframe.contentDocument?.querySelector("[data-composition-id]");
+                  if (!root) return;
+                  const w = parseInt(root.getAttribute("data-width") || "0", 10);
+                  const h = parseInt(root.getAttribute("data-height") || "0", 10);
+                  if (w > 0 && h > 0) {
+                    setCompositionWidth(w);
+                    setCompositionHeight(h);
+                  }
+                } catch {
+                  // cross-origin
+                }
+              };
               // Attach now (iframe may already be loaded) and on future loads
               attachErrorCapture();
+              detectDimensions();
               iframe.addEventListener("load", () => {
                 consoleErrorsRef.current = [];
                 setConsoleErrors(null);
                 attachErrorCapture();
+                detectDimensions();
               });
             }}
             previewOverlay={
