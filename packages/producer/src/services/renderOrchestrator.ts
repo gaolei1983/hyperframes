@@ -2153,10 +2153,8 @@ export async function executeRenderJob(
     fileServer = probeResult.fileServer;
     probeSession = probeResult.probeSession;
     lastBrowserConsole = probeResult.lastBrowserConsole;
-    // Re-assign through the typed result so the rest of the function sees
-    // `job.duration` and `job.totalFrames` narrowed to `number` — the
-    // assignments happened inside `runProbeStage`, but mirroring them here
-    // restores TypeScript's control-flow narrowing.
+    // The probe stage produces `duration` / `totalFrames` values; the
+    // sequencer owns the `RenderJob` and writes them onto it.
     job.duration = probeResult.duration;
     job.totalFrames = probeResult.totalFrames;
     const totalFrames = probeResult.totalFrames;

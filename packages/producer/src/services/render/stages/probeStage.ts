@@ -13,8 +13,11 @@
  *     plan lists recompile as a sibling phase.
  *   - `composition` (videos/audios/duration) is mutated in place — callers
  *     downstream see the reconciled view through the same object reference.
- *   - `job.duration` and `job.totalFrames` are assigned at the same code
- *     points.
+ *   - The stage computes the final composition `duration` and `totalFrames`
+ *     and returns them. Assigning those values onto the `RenderJob` is the
+ *     sequencer's responsibility — a future chunk worker can't mutate the
+ *     orchestrator's `job` object, and keeping the assignment in one place
+ *     prevents the same value living in two writers.
  *   - The "Composition duration is 0" diagnostic builds the same hint
  *     string from the same console-buffer regex and `__timelines` probe.
  *   - The post-probe "failed network requests" warning fires with the same
@@ -288,10 +291,8 @@ export async function runProbeStage(input: ProbeStageInput): Promise<ProbeStageR
   }
   const browserProbeMs = Date.now() - probeStart;
 
-  job.duration = composition.duration;
-  job.totalFrames = Math.ceil(composition.duration * fpsToNumber(job.config.fps));
   const duration = composition.duration;
-  const totalFrames = job.totalFrames;
+  const totalFrames = Math.ceil(duration * fpsToNumber(job.config.fps));
 
   if (duration <= 0) {
     // Gather diagnostics to help users understand why the render would produce a black video.
