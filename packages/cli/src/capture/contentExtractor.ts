@@ -358,6 +358,11 @@ export function generateAssetDescriptions(
     const svgsPath = join(assetsPath, "svgs");
     for (const file of readdirSync(svgsPath)) {
       if (!file.endsWith(".svg")) continue;
+      const geminiCaption = geminiCaptions[`svgs/${file}`];
+      if (geminiCaption) {
+        svgLines.push(`svgs/${file} — ${geminiCaption}`);
+        continue;
+      }
       const svgMatch = tokens.svgs.find(
         (s) =>
           s.label &&

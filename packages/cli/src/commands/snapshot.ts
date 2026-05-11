@@ -155,6 +155,16 @@ async function captureSnapshots(
         )
         .catch(() => {});
 
+      // Wait for shader transition pre-rendering to complete (if active).
+      // HyperShader shows a loading overlay with [data-hyper-shader-loading]
+      // while it samples scene textures. Snapshots taken during loading show
+      // the "Preparing scene transitions" screen instead of actual content.
+      await page
+        .waitForFunction(() => !document.querySelector("[data-hyper-shader-loading]"), {
+          timeout: 60_000,
+        })
+        .catch(() => {});
+
       // Extra settle time for media, fonts, and animations to initialize
       await new Promise((r) => setTimeout(r, 1500));
 
