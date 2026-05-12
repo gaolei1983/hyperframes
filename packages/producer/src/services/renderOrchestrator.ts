@@ -1605,7 +1605,7 @@ async function compositeHdrFrame(
   fullStacking: ElementStackingInfo[],
   elementFilter?: Set<string>,
   debugFrameIndex: number = -1,
-): Promise<void> {
+): Promise<Buffer> {
   const {
     log,
     domSession,
@@ -1625,6 +1625,25 @@ async function compositeHdrFrame(
     debugDumpDir,
     hdrPerf,
   } = ctx;
+  const pool = ctx.pngDecodeBlitPool ?? null;
+  // Per-frame pending decode+blit. When non-null, the canvas
+  // ArrayBuffer has been transferred to the pool and the local `canvas`
+  // variable points at a detached Buffer view. We MUST await this before
+  // any read/write of the canvas (subsequent HDR layer blits, the next
+  // DOM-layer dispatch, or the function's return value).
+  //
+  // The pool pattern saves ~70-80ms per consecutive DOM layer pair by
+  // overlapping layer N's decode+blit (worker thread) with layer N+1's
+  // CDP screenshot (Chrome thread). HDR layers force a drain because
+  // they composite onto the canvas synchronously on the calling thread.
+  let pendingDecodeBlit: Promise<Buffer> | null = null;
+  let liveCanvas: Buffer = canvas;
+  const drainPending = async (): Promise<void> => {
+    if (!pendingDecodeBlit) return;
+    const fresh = await pendingDecodeBlit;
+    pendingDecodeBlit = null;
+    liveCanvas = fresh;
+  };
 
   const filteredStacking = elementFilter
     ? fullStacking.filter((e) => elementFilter.has(e.id))
@@ -1663,12 +1682,16 @@ async function compositeHdrFrame(
     if (layer.type === "hdr") {
       // Skip zero-opacity HDR elements — their parent scene may have faded out.
       if (layer.element.opacity <= 0) continue;
-      const before = shouldLog ? countNonZeroRgb48(canvas) : 0;
+      // HDR layer composites onto the canvas synchronously on the
+      // calling thread, so we MUST await any in-flight DOM decode+blit
+      // first (otherwise the underlying ArrayBuffer is still detached).
+      await drainPending();
+      const before = shouldLog ? countNonZeroRgb48(liveCanvas) : 0;
       const isHdrImage = nativeHdrImageIds.has(layer.element.id);
       const hdrTargetTransfer = compositeTransfer === "srgb" ? undefined : compositeTransfer;
       if (isHdrImage) {
         blitHdrImageLayer(
-          canvas,
+          liveCanvas,
           layer.element,
           hdrImageBuffers,
           hdrImageTransferCache,
@@ -1681,7 +1704,7 @@ async function compositeHdrFrame(
         );
       } else {
         blitHdrVideoLayer(
-          canvas,
+          liveCanvas,
           layer.element,
           time,
           fps,
@@ -1696,7 +1719,7 @@ async function compositeHdrFrame(
         );
       }
       if (shouldLog) {
-        const after = countNonZeroRgb48(canvas);
+        const after = countNonZeroRgb48(liveCanvas);
         if (isHdrImage) {
           const buf = hdrImageBuffers.get(layer.element.id);
           log.info("[diag] hdr layer blit", {
@@ -1756,7 +1779,11 @@ async function compositeHdrFrame(
       const hideIds = allElementIds.filter((id) => !layerIds.has(id));
       if (hdrPerf) hdrPerf.domLayerCaptures += 1;
 
-      // 1. Seek GSAP to restore all animated properties from clean state
+      // 1. Seek GSAP to restore all animated properties from clean state.
+      //    This is CDP work that does NOT touch the canvas, so we can
+      //    proceed even while a prior layer's decode+blit is in flight on
+      //    the pool — the overlap is the whole point of lever-4. Step 6
+      //    is where we drain before dispatching this layer's blit.
       let timingStart = Date.now();
       await domSession.page.evaluate((t: number) => {
         if (window.__hf && typeof window.__hf.seek === "function") window.__hf.seek(t);
@@ -1785,43 +1812,109 @@ async function compositeHdrFrame(
       await removeDomLayerMask(domSession.page, hideIds);
       addHdrTiming(hdrPerf, "domMaskRemoveMs", timingStart);
 
-      try {
-        timingStart = Date.now();
-        const { data: domRgba } = decodePng(domPng);
-        addHdrTiming(hdrPerf, "domPngDecodeMs", timingStart);
-        const before = shouldLog ? countNonZeroRgb48(canvas) : 0;
-        const alphaPixels = shouldLog ? countNonZeroAlpha(domRgba) : 0;
-        timingStart = Date.now();
-        blitRgba8OverRgb48le(domRgba, canvas, width, height, compositeTransfer);
-        addHdrTiming(hdrPerf, "domBlitMs", timingStart);
-        if (shouldLog && debugDumpDir) {
-          const after = countNonZeroRgb48(canvas);
-          const dumpName = `frame_${String(debugFrameIndex).padStart(4, "0")}_layer_${String(layerIdx).padStart(2, "0")}_dom.png`;
-          const dumpPath = join(debugDumpDir, dumpName);
-          writeFileSync(dumpPath, domPng);
-          log.info("[diag] dom layer blit", {
-            frame: debugFrameIndex,
-            layerIdx,
+      // 6. Drain any prior layer's decode+blit before reading or writing
+      //    the canvas. On the pool path the prior layer's blit was
+      //    dispatched without an await; this is where its in-flight
+      //    promise resolves and `liveCanvas` is reattached. On the inline
+      //    path `pendingDecodeBlit` is always null so this is a no-op.
+      await drainPending();
+
+      // 7. Decode + blit. Pool path: dispatch and store the promise so
+      //    the next iteration's CDP work can overlap. Inline path: do it
+      //    synchronously, preserving the legacy code shape.
+      if (pool) {
+        const inFlightLayerIdx = layerIdx;
+        const inFlightLayerIds = layer.elementIds;
+        const inFlightHideCount = hideIds.length;
+        const beforeForDiag = shouldLog ? countNonZeroRgb48(liveCanvas) : 0;
+        const destForPool = liveCanvas;
+        pendingDecodeBlit = (async (): Promise<Buffer> => {
+          try {
+            const result = await pool.run({
+              png: domPng,
+              dest: destForPool,
+              width,
+              height,
+              transfer: compositeTransfer,
+            });
+            if (hdrPerf) {
+              hdrPerf.timings.domPngDecodeMs += result.decodeMs;
+              hdrPerf.timings.domBlitMs += result.blitMs;
+            }
+            if (shouldLog && debugDumpDir) {
+              const after = countNonZeroRgb48(result.dest);
+              const dumpName = `frame_${String(debugFrameIndex).padStart(4, "0")}_layer_${String(
+                inFlightLayerIdx,
+              ).padStart(2, "0")}_dom.png`;
+              const dumpPath = join(debugDumpDir, dumpName);
+              writeFileSync(dumpPath, domPng);
+              log.info("[diag] dom layer blit (pool)", {
+                frame: debugFrameIndex,
+                layerIdx: inFlightLayerIdx,
+                layerIds: inFlightLayerIds,
+                hideCount: inFlightHideCount,
+                pngBytes: domPng.length,
+                pixelsAdded: after - beforeForDiag,
+                totalNonZero: after,
+                dumpPath,
+              });
+            }
+            return result.dest;
+          } catch (err) {
+            log.warn("DOM layer decode/blit pool task failed; skipping overlay", {
+              layerIds: inFlightLayerIds,
+              error: err instanceof Error ? err.message : String(err),
+            });
+            // The dest ArrayBuffer was transferred out and may be lost.
+            // Return a freshly-allocated zero canvas so the next layer
+            // has something to write into; the frame may have missing
+            // pixels but the render does not abort.
+            return Buffer.alloc(width * height * 6);
+          }
+        })();
+      } else {
+        try {
+          timingStart = Date.now();
+          const { data: domRgba } = decodePng(domPng);
+          addHdrTiming(hdrPerf, "domPngDecodeMs", timingStart);
+          const before = shouldLog ? countNonZeroRgb48(liveCanvas) : 0;
+          const alphaPixels = shouldLog ? countNonZeroAlpha(domRgba) : 0;
+          timingStart = Date.now();
+          blitRgba8OverRgb48le(domRgba, liveCanvas, width, height, compositeTransfer);
+          addHdrTiming(hdrPerf, "domBlitMs", timingStart);
+          if (shouldLog && debugDumpDir) {
+            const after = countNonZeroRgb48(liveCanvas);
+            const dumpName = `frame_${String(debugFrameIndex).padStart(4, "0")}_layer_${String(layerIdx).padStart(2, "0")}_dom.png`;
+            const dumpPath = join(debugDumpDir, dumpName);
+            writeFileSync(dumpPath, domPng);
+            log.info("[diag] dom layer blit", {
+              frame: debugFrameIndex,
+              layerIdx,
+              layerIds: layer.elementIds,
+              hideCount: hideIds.length,
+              pngBytes: domPng.length,
+              alphaPixels,
+              pixelsAdded: after - before,
+              totalNonZero: after,
+              dumpPath,
+            });
+          }
+        } catch (err) {
+          log.warn("DOM layer decode/blit failed; skipping overlay", {
             layerIds: layer.elementIds,
-            hideCount: hideIds.length,
-            pngBytes: domPng.length,
-            alphaPixels,
-            pixelsAdded: after - before,
-            totalNonZero: after,
-            dumpPath,
+            error: err instanceof Error ? err.message : String(err),
           });
         }
-      } catch (err) {
-        log.warn("DOM layer decode/blit failed; skipping overlay", {
-          layerIds: layer.elementIds,
-          error: err instanceof Error ? err.message : String(err),
-        });
       }
     }
   }
 
+  // Drain the last layer's in-flight decode+blit (if any) before returning
+  // — otherwise the caller would see a detached canvas.
+  await drainPending();
+
   if (shouldLog && debugDumpDir) {
-    const finalNonZero = countNonZeroRgb48(canvas);
+    const finalNonZero = countNonZeroRgb48(liveCanvas);
     log.info("[diag] compositeToBuffer end", {
       frame: debugFrameIndex,
       finalNonZeroPixels: finalNonZero,
@@ -1829,6 +1922,8 @@ async function compositeHdrFrame(
       coverage: ((finalNonZero / (width * height)) * 100).toFixed(1) + "%",
     });
   }
+
+  return liveCanvas;
 }
 
 // ── Layered-frame helpers (issue #677 hybrid path) ──────────────────────────
@@ -1891,6 +1986,13 @@ interface LayeredTransitionBuffers {
  * @param canvas - Pre-allocated rgb48le canvas (width * height * 6 bytes).
  *                 Zero-filled by this helper.
  * @param nativeHdrIds - Set of HDR element ids used by `queryElementStacking`.
+ *
+ * @returns The (possibly re-attached) canvas buffer. When `ctx.pngDecodeBlitPool`
+ *          is set, per-layer DOM decode+blit transfers the canvas ArrayBuffer
+ *          across the worker boundary and a fresh Buffer view is returned —
+ *          the input `canvas` reference is detached and unusable by the
+ *          caller. The legacy inline path returns the same Buffer the caller
+ *          passed in.
  */
 export async function processLayeredNormalFrame(
   session: CaptureSession,
@@ -1899,7 +2001,7 @@ export async function processLayeredNormalFrame(
   ctx: HdrCompositeContext,
   canvas: Buffer,
   nativeHdrIds: Set<string>,
-): Promise<void> {
+): Promise<Buffer> {
   const hdrPerf = ctx.hdrPerf;
   if (hdrPerf) hdrPerf.frames += 1;
   if (hdrPerf) hdrPerf.normalFrames += 1;
@@ -1930,8 +2032,16 @@ export async function processLayeredNormalFrame(
   // each worker's session to drive its own captures.
   const sessionScopedCtx: HdrCompositeContext = { ...ctx, domSession: session };
   timingStart = Date.now();
-  await compositeHdrFrame(sessionScopedCtx, canvas, time, stackingInfo, undefined, frameIdx);
+  const finalCanvas = await compositeHdrFrame(
+    sessionScopedCtx,
+    canvas,
+    time,
+    stackingInfo,
+    undefined,
+    frameIdx,
+  );
   addHdrTiming(hdrPerf, "normalCompositeMs", timingStart);
+  return finalCanvas;
 }
 
 /**
@@ -3500,7 +3610,18 @@ export async function executeRenderJob(
           const transOutput = hasTransitions ? Buffer.alloc(bufSize) : null;
           // Pre-allocate the normal-frame canvas too — reused via .fill(0) each iteration
           // to avoid ~37 MB allocation per frame in the hot loop.
-          const normalCanvas = Buffer.alloc(bufSize);
+          // `let` (not `const`): the legacy sequential path may rebind
+          // this if `processLayeredNormalFrame` ever runs with the
+          // decode/blit pool wired into `hdrCompositeCtx`. In the current
+          // wiring the legacy path runs WITHOUT a pool (the pool is only
+          // spawned inside the hybrid try-block below), so the rebind is
+          // effectively a no-op here — but keeping it `let` future-proofs
+          // any change that hands the pool to the sequential path too.
+          // The explicit `Buffer` annotation is required because newer
+          // `@types/node` narrows `Buffer.alloc` to `Buffer<ArrayBuffer>`
+          // while `processLayeredNormalFrame` returns the union-typed
+          // `Buffer` (the pool reply re-attaches a generic ArrayBufferLike).
+          let normalCanvas: Buffer = Buffer.alloc(bufSize);
 
           // ── Hybrid layered dispatch (issue #677) ───────────────────────────
           // Pre-#677 this path was a single sequential for-loop that drove the
@@ -3882,7 +4003,13 @@ export async function executeRenderJob(
 
               const workerTaskOf = async (w: number): Promise<void> => {
                 const session = sessions[w];
-                const canvas = workerCanvases[w];
+                // `let` (not `const`): when the decode/blit pool is in
+                // use, `processLayeredNormalFrame` returns the re-attached
+                // canvas Buffer (the input's ArrayBuffer is detached on
+                // transfer). We swap the local + the slot in
+                // `workerCanvases` so the next frame in this worker's
+                // slice uses the fresh view.
+                let canvas = workerCanvases[w];
                 if (!session || !canvas) return;
                 const range = workerRanges[w];
                 if (!range) return;
@@ -3985,7 +4112,7 @@ export async function executeRenderJob(
                       throw err instanceof Error ? err : new Error(String(err));
                     });
                   } else {
-                    await processLayeredNormalFrame(
+                    canvas = await processLayeredNormalFrame(
                       session,
                       i,
                       time,
@@ -3993,6 +4120,7 @@ export async function executeRenderJob(
                       canvas,
                       nativeHdrIds,
                     );
+                    workerCanvases[w] = canvas;
                     if (debugDumpEnabled && debugDumpDir && i % 30 === 0) {
                       const previewPath = join(
                         debugDumpDir,
@@ -4082,7 +4210,7 @@ export async function executeRenderJob(
                 );
                 await writeEncoded(i, transitionBuffers.output);
               } else {
-                await processLayeredNormalFrame(
+                normalCanvas = await processLayeredNormalFrame(
                   domSession,
                   i,
                   time,
