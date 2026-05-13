@@ -90,8 +90,8 @@ export const NLEPreview = memo(function NLEPreview({
     const s = toDomPrecision(state.zoomPercent / 100);
     const px = toDomPrecision(state.panX);
     const py = toDomPrecision(state.panY);
-    stage.style.zoom = String(s);
-    stage.style.transform = `translate(${px}px, ${py}px)`;
+    stage.style.zoom = "";
+    stage.style.transform = `translate(${px}px, ${py}px) scale(${s})`;
   }, []);
 
   const applyZoom = useCallback(
@@ -276,12 +276,11 @@ export const NLEPreview = memo(function NLEPreview({
           ref={stageRef}
           className="absolute inset-2"
           style={{
-            zoom: toDomPrecision(initial.zoomPercent / 100),
-            transform: `translate(${toDomPrecision(initial.panX)}px, ${toDomPrecision(initial.panY)}px)`,
-            transformOrigin: "0 0",
-            outline: "1px solid rgba(255,255,255,0.12)",
+            transform: `translate(${toDomPrecision(initial.panX)}px, ${toDomPrecision(initial.panY)}px) scale(${toDomPrecision(initial.zoomPercent / 100)})`,
+            transformOrigin: "50% 50%",
+            outline: "1px solid rgba(255,255,255,0.3)",
             outlineOffset: "0px",
-            boxShadow: "0 4px 32px rgba(0,0,0,0.55)",
+            boxShadow: "0 4px 32px rgba(0,0,0,0.7)",
           }}
           data-testid="preview-zoom-stage"
         >
