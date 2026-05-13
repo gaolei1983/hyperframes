@@ -179,6 +179,15 @@ test("preview matches render after UI edits", async ({ page, context }) => {
   await opacitySlider.fill("80");
   await waitForETagChange(page, etag2);
 
+  // ── 4.5. Reload studio — verify edits survive a page refresh ─────────────
+  // Catches the class of bug where bootstrap re-applies an empty in-memory
+  // manifest to the preview or clobbers source files on load, reversing edits
+  // that were correctly persisted to disk (studio-manual-edits.json / index.html).
+  const etagAfterEdits = await fetchETag(page);
+  await page.reload();
+  await canvas.waitFor({ state: "visible", timeout: 30_000 });
+  expect(await fetchETag(page)).toBe(etagAfterEdits);
+
   // ── 5. Screenshot preview at t=0, t=1, t=2 ───────────────────────────────
   const previewPage = await context.newPage();
   await previewPage.setViewportSize({ width: 1920, height: 1080 });
