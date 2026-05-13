@@ -79,36 +79,15 @@ export const NLEPreview = memo(function NLEPreview({
   const writeTransform = useCallback((state: PreviewZoomState) => {
     const stage = stageRef.current;
     if (!stage) return;
-
-    const scale = toDomPrecision(state.zoomPercent / 100);
+    const s = toDomPrecision(state.zoomPercent / 100);
     const px = toDomPrecision(state.panX);
     const py = toDomPrecision(state.panY);
-
-    // Apply pan on the stage, but apply scale INSIDE the iframe.
-    // Scaling the iframe's own content avoids compositor re-rasterization
-    // of the entire iframe subtree on every zoom change.
-    stage.style.transform = `translate3d(${px}px, ${py}px, 0)`;
-
-    // Expose zoom scale as CSS custom property for overlay coordinate mapping
-    const viewport = viewportRef.current;
-    if (viewport) viewport.style.setProperty("--preview-zoom", String(scale));
-
-    const player = stage.querySelector("hyperframes-player") as HTMLElement | null;
-    const iframe = player?.shadowRoot?.querySelector(".hfp-iframe") as HTMLIFrameElement | null;
-    try {
-      const doc = iframe?.contentDocument;
-      if (doc?.documentElement) {
-        doc.documentElement.style.transformOrigin = "center center";
-        doc.documentElement.style.transform = `scale(${scale})`;
-      }
-    } catch {
-      // Cross-origin fallback: scale the stage instead
-      stage.style.transform = `translate3d(${px}px, ${py}px, 0) scale(${scale})`;
-    }
+    stage.style.zoom = String(s);
+    stage.style.transform = `translate(${px}px, ${py}px)`;
   }, []);
 
   const applyZoom = useCallback(
-    (next: PreviewZoomState, animate: boolean) => {
+    (next: PreviewZoomState) => {
       const clamped: PreviewZoomState = {
         zoomPercent: clampPreviewZoomPercent(next.zoomPercent),
         panX: Number.isFinite(next.panX) ? next.panX : 0,
@@ -116,17 +95,10 @@ export const NLEPreview = memo(function NLEPreview({
       };
       zoomRef.current = clamped;
 
-      if (!animate && !zoomingRef.current) {
+      if (!zoomingRef.current) {
         zoomingRef.current = true;
-        const stage = stageRef.current;
-        if (stage) stage.style.transition = "none";
         const hud = hudRef.current;
         if (hud) hud.style.opacity = "1";
-      }
-
-      if (animate) {
-        const stage = stageRef.current;
-        if (stage) stage.style.transition = "transform 200ms ease-out";
       }
 
       writeTransform(clamped);
@@ -205,7 +177,7 @@ export const NLEPreview = memo(function NLEPreview({
           viewportWidth: rect.width,
           viewportHeight: rect.height,
         });
-        applyZoom(next, false);
+        applyZoom(next);
         return;
       }
 
@@ -234,7 +206,7 @@ export const NLEPreview = memo(function NLEPreview({
       ) {
         return;
       }
-      applyZoom(DEFAULT_PREVIEW_ZOOM, true);
+      applyZoom(DEFAULT_PREVIEW_ZOOM);
     };
 
     document.addEventListener("dblclick", handleDblClick, { capture: true });
@@ -267,7 +239,7 @@ export const NLEPreview = memo(function NLEPreview({
         viewportWidth: rect.width,
         viewportHeight: rect.height,
       });
-      applyZoom({ ...zoomRef.current, ...pan }, false);
+      applyZoom({ ...zoomRef.current, ...pan });
     },
     [applyZoom],
   );
@@ -296,9 +268,9 @@ export const NLEPreview = memo(function NLEPreview({
           ref={stageRef}
           className="absolute inset-2"
           style={{
-            transform: `translate3d(${toDomPrecision(initial.panX)}px, ${toDomPrecision(initial.panY)}px, 0)`,
-            transformOrigin: "center center",
-            willChange: "transform",
+            zoom: toDomPrecision(initial.zoomPercent / 100),
+            transform: `translate(${toDomPrecision(initial.panX)}px, ${toDomPrecision(initial.panY)}px)`,
+            transformOrigin: "0 0",
           }}
           data-testid="preview-zoom-stage"
         >
