@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <title>Template Picker</title>
+<script src="https://cdn.jsdelivr.net/npm/@hyperframes/player/dist/hyperframes-player.global.js"></script>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
 body {
@@ -154,49 +155,37 @@ body {
   border: 1px solid #333;
   color: #777;
 }
-.motion-row {
-  padding: 20px 32px 0;
-  display: flex;
-  gap: 14px;
-  overflow-x: auto;
-  flex-wrap: nowrap;
-}
-.motion-row:empty { display: none; }
-.motion-row-label {
-  font-size: 10px;
-  color: #555;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  flex-shrink: 0;
-  align-self: center;
-  margin-right: 4px;
-  writing-mode: vertical-lr;
-  transform: rotate(180deg);
-}
-.motion-card {
-  flex-shrink: 0;
-  width: 280px;
+.motion-row { display: none; }
+.video-card {
+  grid-column: 1 / -1;
   background: #161616;
   border: 1px solid #222;
   overflow: hidden;
   cursor: pointer;
   transition: border-color 0.15s;
 }
-.motion-card:hover { border-color: #444; }
-.motion-card img {
+.video-card:hover { border-color: #444; }
+.video-card-preview {
   width: 100%;
-  aspect-ratio: 16/9;
-  object-fit: cover;
+  aspect-ratio: 16/7;
+  position: relative;
+  overflow: hidden;
+}
+.video-card-preview hyperframes-player {
+  width: 100%;
+  height: 100%;
   display: block;
 }
-.motion-card .mc-info {
-  padding: 8px 12px;
+.video-card-info {
+  padding: 10px 14px;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
-.motion-card .mc-name { font-size: 12px; font-weight: 600; }
-.motion-card .mc-badge {
+.video-card-info .nm { font-size: 14px; font-weight: 600; }
+.video-card-info .tl { font-size: 10px; color: #777; }
+.video-card-info .badges { display: flex; gap: 6px; }
+.video-card-info .bg {
   font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -607,20 +596,33 @@ function buildGrid() {
   document.getElementById("loading").textContent = "Loading 0/" + ALL_TEMPLATES.length + "...";
 }
 
-function buildMotionRow() {
-  var row = document.getElementById("motion-row");
+function buildVideoCards() {
   if (!MOTION_TEMPLATES || !MOTION_TEMPLATES.length) return;
-  row.innerHTML = '<span class="motion-row-label">MOTION</span>';
+  var grid = document.getElementById("grid");
   MOTION_TEMPLATES.forEach(function(m) {
     var card = document.createElement("div");
-    card.className = "motion-card";
+    card.className = "video-card";
+    card.id = "card-" + m.slug;
+    var playerEl = document.createElement("hyperframes-player");
+    playerEl.setAttribute("src", m.src);
+    playerEl.setAttribute("width", "1920");
+    playerEl.setAttribute("height", "1080");
+    playerEl.setAttribute("muted", "");
+
     card.innerHTML =
-      '<img src="' + m.thumbnail + '" alt="' + m.name + '">' +
-      '<div class="mc-info">' +
-        '<span class="mc-name">' + m.name + '</span>' +
-        '<span class="mc-badge">video</span>' +
+      '<div class="video-card-preview"></div>' +
+      '<div class="video-card-info">' +
+        '<div><span class="nm">' + m.name + '</span> <span class="tl">' + (m.description || "") + '</span></div>' +
+        '<div class="badges"><span class="bg">video</span></div>' +
       '</div>';
-    card.onclick = function() {
+    card.querySelector(".video-card-preview").appendChild(playerEl);
+
+    // Play on hover, pause on leave
+    card.addEventListener("mouseenter", function() { playerEl.play(); });
+    card.addEventListener("mouseleave", function() { playerEl.pause(); playerEl.seek(0); });
+
+    card.addEventListener("click", function() {
+      var pal = activePal > 0 ? PALETTES[activePal] : null;
       var msg = {
         type: "templatePick",
         slug: m.slug,
@@ -629,13 +631,21 @@ function buildMotionRow() {
         scheme: "dark",
         tone: "dark",
         promptText: PROMPT_TEXT,
-        palette: null,
+        palette: pal ? {bg: pal.bg, fg: pal.fg, accent: pal.ac, muted: pal.mt} : null,
         motionTemplate: true,
         compositionSrc: m.src
       };
-      if (window.parent !== window) window.parent.postMessage(msg, "*");
-    };
-    row.appendChild(card);
+
+      var overlay = document.getElementById("trans-overlay");
+      overlay.classList.add("active");
+      card.classList.add("selected-exit");
+      setTimeout(function() {
+        if (window.parent !== window) window.parent.postMessage(msg, "*");
+        else { sessionStorage.setItem("templatePick", JSON.stringify(msg)); window.location = "pick-design.html"; }
+      }, 500);
+    });
+
+    grid.insertBefore(card, grid.firstChild);
   });
 }
 
@@ -689,8 +699,8 @@ function selectTemplate(slug) {
 }
 
 buildPalChips();
-buildMotionRow();
 buildGrid();
+buildVideoCards();
 </script>
 </body>
 </html>
