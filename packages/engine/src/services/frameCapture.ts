@@ -349,6 +349,29 @@ async function pollPageExpression(
   return Boolean(await page.evaluate(expression));
 }
 
+async function pollVideosReady(
+  page: Page,
+  skipIds: readonly string[],
+  timeoutMs: number,
+  intervalMs: number = 100,
+): Promise<boolean> {
+  const check = async (): Promise<boolean> => {
+    return Boolean(
+      await page.evaluate((skipIdList: readonly string[]) => {
+        const skip = new Set(skipIdList);
+        const vids = Array.from(document.querySelectorAll("video")).filter((v) => !skip.has(v.id));
+        return vids.length === 0 || vids.every((v) => (v as HTMLVideoElement).readyState >= 2);
+      }, skipIds),
+    );
+  };
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    if (await check()) return true;
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+  return check();
+}
+
 async function applyVideoMetadataHints(
   page: Page,
   hints: readonly CaptureVideoMetadataHint[] | undefined,
@@ -490,10 +513,9 @@ export async function initializeSession(session: CaptureSession): Promise<void> 
     // sources) whose frames come from ffmpeg out-of-band. videoMetadataHints
     // supply intrinsic dimensions for skipped videos whose layout depends on
     // aspect ratio, while Chromium may still fail to decode/load metadata.
-    const skipIdsLiteral = JSON.stringify(session.options.skipReadinessVideoIds ?? []);
-    const videosReady = await pollPageExpression(
+    const videosReady = await pollVideosReady(
       page,
-      `(() => { const skip = new Set(${skipIdsLiteral}); const vids = Array.from(document.querySelectorAll("video")).filter(v => !skip.has(v.id)); return vids.length === 0 || vids.every(v => v.readyState >= 2); })()`,
+      session.options.skipReadinessVideoIds ?? [],
       pageReadyTimeout,
     );
     if (!videosReady) {
@@ -596,16 +618,11 @@ export async function initializeSession(session: CaptureSession): Promise<void> 
   await applyVideoMetadataHints(page, session.options.videoMetadataHints);
 
   // Same readyState contract as the screenshot path above (>= 2 / HAVE_CURRENT_DATA).
-  const beginframeSkipIdsLiteral = JSON.stringify(session.options.skipReadinessVideoIds ?? []);
-  const videoDeadline =
-    Date.now() + (session.config?.playerReadyTimeout ?? DEFAULT_CONFIG.playerReadyTimeout);
-  while (Date.now() < videoDeadline) {
-    const videosReady = await page.evaluate(
-      `(() => { const skip = new Set(${beginframeSkipIdsLiteral}); const vids = Array.from(document.querySelectorAll("video")).filter(v => !skip.has(v.id)); return vids.length === 0 || vids.every(v => v.readyState >= 2); })()`,
-    );
-    if (videosReady) break;
-    await new Promise((r) => setTimeout(r, 100));
-  }
+  await pollVideosReady(
+    page,
+    session.options.skipReadinessVideoIds ?? [],
+    session.config?.playerReadyTimeout ?? DEFAULT_CONFIG.playerReadyTimeout,
+  );
 
   // Font check (no rAF dependency — uses fonts.ready API directly)
   await page.evaluate(`document.fonts?.ready`);
