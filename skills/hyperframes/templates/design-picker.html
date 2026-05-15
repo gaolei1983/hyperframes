@@ -2075,29 +2075,36 @@
         });
       });
 
-      // Store original CSS var values per iframe to avoid remapping drift
+      // Store original CSS var values per template slug to avoid remapping drift
       var _origVarCache = {};
 
-      function captureOriginalVars(ifr) {
-        var id = ifr.id || ifr.src;
-        if (_origVarCache[id]) return _origVarCache[id];
+      function captureOriginalVars(ifr, slug) {
+        var key = slug || ifr.src || "default";
+        if (_origVarCache[key]) return _origVarCache[key];
         var doc = ifr.contentDocument;
         if (!doc) return {};
+
+        // Temporarily remove override to read originals
+        var overrideEl = doc.getElementById("finetune-override");
+        var savedOverride = "";
+        if (overrideEl) { savedOverride = overrideEl.textContent; overrideEl.textContent = ""; }
+
         var vars = {};
         doc.querySelectorAll("style").forEach(function(st) {
+          if (st.id === "finetune-override") return;
           var m = st.textContent.match(/--[\w-]+\s*:/g);
           if (m) m.forEach(function(v) {
             var name = v.replace(/\s*:$/, "");
             if (!vars[name]) {
-              // Read from computed style with override cleared
-              var overrideEl = doc.getElementById("finetune-override");
-              if (overrideEl) overrideEl.textContent = "";
-              var val = ifr.contentWindow.getComputedStyle(doc.documentElement).getPropertyValue(name).trim();
-              vars[name] = val;
+              vars[name] = ifr.contentWindow.getComputedStyle(doc.documentElement).getPropertyValue(name).trim();
             }
           });
         });
-        _origVarCache[id] = vars;
+
+        // Restore override
+        if (overrideEl) overrideEl.textContent = savedOverride;
+
+        if (Object.keys(vars).length > 0) _origVarCache[key] = vars;
         return vars;
       }
 
@@ -2105,10 +2112,12 @@
         return { bg: bg, fg: fg, ac: ac, mt: mt, hFont: t.headline.family, bFont: t.body.family, radius: cr.value };
       }
 
-      function applyOverrideToIframe(ifr, opts) {
+      function applyOverrideToIframe(ifr, opts, slug) {
         if (!ifr || !ifr.contentDocument) return;
         var doc = ifr.contentDocument;
-        var origVars = captureOriginalVars(ifr);
+        var origVars = captureOriginalVars(ifr, slug);
+        if (Object.keys(origVars).length === 0) return;
+
         var style = doc.getElementById("finetune-override");
         if (!style) { style = doc.createElement("style"); style.id = "finetune-override"; doc.head.appendChild(style); }
 
@@ -2116,6 +2125,8 @@
         Object.keys(origVars).forEach(function(v) {
           var orig = origVars[v];
           if (!orig) return;
+
+          // Check if this is a color var (contains hex)
           var hexMatch = orig.match(/#[0-9a-fA-F]{3,8}/);
           if (hexMatch) {
             var hex = hexMatch[0];
@@ -2128,15 +2139,20 @@
             else if (lum > 60) target = opts.mt;
             else target = opts.ac;
             css += "  " + v + ": " + target + " !important;\n";
-          } else if (v.match(/font|display|heading|body|serif|mono/i) && orig.indexOf("#") === -1) {
-            if (v.match(/display|heading|headline/i)) css += "  " + v + ': "' + opts.hFont + '", sans-serif !important;\n';
-            else if (v.match(/body|text/i)) css += "  " + v + ': "' + opts.bFont + '", sans-serif !important;\n';
+            return;
+          }
+
+          // Check if this is a font var (name pattern + non-color value)
+          if (v.match(/^--f-|--font/i) && orig.indexOf("#") === -1) {
+            if (v.match(/display|heading|headline/i)) {
+              css += "  " + v + ': "' + opts.hFont + '", sans-serif !important;\n';
+            } else if (v.match(/body|text/i)) {
+              css += "  " + v + ': "' + opts.bFont + '", sans-serif !important;\n';
+            }
           }
         });
         css += "}\n";
         css += "body, html { background: " + opts.bg + " !important; color: " + opts.fg + " !important; }\n";
-        css += "* { border-radius: " + opts.radius + " !important; }\n";
-        css += "section, .slide, [class*='slide'], deck-stage, deck-stage>section { border-radius: 0 !important; }\n";
         style.textContent = css;
       }
 
@@ -2263,8 +2279,9 @@
           // Build override CSS from current fine-tune selections
           var _overrideCss = buildTemplateOverrideCss(bg, fg, ac, mt, t, cr);
           // Apply to ALL template iframes (hero + specimens)
+          var _slug = window._currentTemplateSlug || "";
           document.querySelectorAll("#sc-scene-grid iframe, #sc-specimen-grid iframe").forEach(function(_tIfr) {
-            applyOverrideToIframe(_tIfr, _overrideCss);
+            applyOverrideToIframe(_tIfr, _overrideCss, _slug);
           });
         }
 
@@ -2488,6 +2505,8 @@
       // ── Bridge from template-picker ──
       function handleTemplatePick(pick) {
         if (!pick || !pick.slug) return;
+        window._currentTemplateSlug = pick.slug;
+        _origVarCache = {};
         PROMPT.title = pick.name;
         PROMPT.headline = pick.name.toUpperCase();
         PROMPT.subline = pick.tagline;
