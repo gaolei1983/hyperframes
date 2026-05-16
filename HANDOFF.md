@@ -1,9 +1,54 @@
 # HyperFrames Pipeline Quality — Session Handoff
 
 **Branch:** `feat/pipeline-quality-v2`
-**Session date:** May 15–16 2026
+**Session dates:** May 15–16 2026 (initial), May 16 2026 (v2 run + fixes)
 **Primary workspace:** `/Users/ularkimsanov/Desktop/hyperframes-3/`
 **Archive of old videos:** `/Users/ularkimsanov/Desktop/hyperframes-3-archive/videos/`
+
+---
+
+## v2 Run Post-Mortem + Fixes (May 16 2026)
+
+After running all 7 websites through the v2 skill, agents reported their friction points. The results and all priority fixes are documented in `AGENT-FEEDBACK-V2.md`.
+
+### What was fixed (commit `f8e733b9`)
+
+**1. Snapshot tool — two wait-logic bugs fixed**
+
+The old check waited for `[data-hyper-shader-loading]` to _not exist_ in the DOM. Two bugs:
+
+- Cold cache: the overlay stays in the DOM as `display:none` after hiding — element-absence check never resolved, always timed out at 60s
+- Warm cache: IndexedDB hydration runs without showing the overlay at all — check resolved instantly before hydration was done
+
+Fix: primary signal is now `window.__hf.shaderTransitions[].ready` (set by HyperShader after both warm and cold cache paths complete). Overlay `display:none` is kept as fallback for older builds. Verified with huly-promo and a 3-scene test composition.
+
+**2. Optional CSS crossfade (cherry-pick from PR #886)**
+
+`TransitionConfig.shader` is now optional. Omitting it gives a smooth CSS opacity crossfade. CSS-only transitions skip WebGL program compilation and prewarming entirely. `HfTransitionMeta.shader` made optional in engine types to match.
+
+Verified: `{ time: 3.0, duration: 0.6 }` (no shader field) renders correctly alongside a WebGL shader transition in the same composition. The "Unknown shader: undefined" error that blocked all 7 v2 agents is now fixed.
+
+**3. SFX ownership moved to Step 3**
+
+All creative SFX decisions (which file, what moment, what volume) now happen in the storyboard step (Step 3), not in Step 5. Step 5 implements exactly what the storyboard specifies. Agents were overusing SFX because they had creative latitude at build time; that's removed.
+
+**4. Audio timing reconciliation gate (Step 4)**
+
+New required check after mapping timestamps: compare real audio duration against storyboard planned total. If delta >15%, agent must rescale beat durations proportionally or trim script before proceeding to Step 5. CTA beat hard-capped at 2–3s hold.
+
+**5. HTML-in-Canvas duplication removed from Step 3**
+
+The `drawElementImage` API detail (build-time knowledge) was duplicated in the storyboard reference file. Kept the planning section ("name it in the storyboard, Step 5 builds it"), removed the implementation details.
+
+### What's still open
+
+- **PR #886** for the shader changes is now redundant on this branch (changes applied directly). The PR can be closed or updated to target main separately.
+- **v3 runs**: All 7 websites need re-runs with the same prompts to verify fixes hold. New runs will go into fresh directories; update the eval arena after.
+- **HeyGen TTS API shape mismatch**: `data.voices` vs direct list — still needs verification and step-4-vo.md update.
+- **Font filename hashing**: captured `.woff2` files have no readable mapping to font family names. Needs a capture pipeline fix.
+- **`ReferenceError: outputDir is not defined`** in capture CLI during AGENTS.md generation — CLI bug, not yet fixed.
+
+---
 
 ---
 

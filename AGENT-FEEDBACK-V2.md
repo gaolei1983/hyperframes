@@ -113,20 +113,21 @@ These showed up in 5+ of 7 sessions. They are the highest-priority fixes.
 
 ## Priority Action Items
 
-| Priority | Issue                                        | What to do                                                                                 |
-| -------- | -------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| P0       | HyperShader CSS crossfade throws "undefined" | Build test composition, find root cause, fix or update docs                                |
-| P0       | Snapshot tool blind when using shaders       | Either fix tool (wait for precompilation) or document Studio preview as Step 6 alternative |
-| P1       | Sub-agents use `../capture/` paths           | Add linter rule or restructure sub-agent prompt                                            |
-| P1       | HeyGen TTS API shape mismatch                | Verify current API response, update step-4-vo.md                                           |
-| P1       | Storyboard timing ≠ real TTS duration        | Add feedback loop in step 4 to revisit beat count                                          |
-| P2       | Transcription CLI hangs silently             | Progress indicator + cleaner error messages + direct `whisper` fallback                    |
-| P2       | Hashed font filenames                        | Capture pipeline should preserve font-family → filename mapping                            |
-| P2       | Kokoro mispronounces product names           | Pronunciation guide in step-4-vo.md                                                        |
-| P2       | WCAG contrast false positive on gradient bg  | Document `data-layout-ignore` for decorative elements                                      |
-| P3       | "Inter Variable" not in font map             | Map "Inter Variable" → "Inter" in font compiler                                            |
-| P3       | Capture ReferenceError (outputDir)           | Fix CLI bug                                                                                |
-| P3       | Template content null reference              | Document `getElementById` + null guard pattern                                             |
+| Priority | Issue                                        | Status              | Action                                                                                         |
+| -------- | -------------------------------------------- | ------------------- | ---------------------------------------------------------------------------------------------- |
+| P0       | HyperShader CSS crossfade throws "undefined" | ✅ Fixed `f8e733b9` | Optional `shader?` field in TransitionConfig. Omit = CSS crossfade. Verified.                  |
+| P0       | Snapshot tool blind when using shaders       | ✅ Fixed `f8e733b9` | `__hf.shaderTransitions[].ready` as primary wait signal. Two failure modes resolved. Verified. |
+| P1       | SFX overuse / assigned at build time         | ✅ Fixed `f8e733b9` | SFX now assigned in step 3 with exact files. Step 5 implements only.                           |
+| P1       | Storyboard timing ≠ real TTS duration        | ✅ Fixed `f8e733b9` | Timing reconciliation gate added to step-4-vo.md. CTA hold hard-capped.                        |
+| P1       | Sub-agents use `../capture/` paths           | Open                | Add linter rule or restructure sub-agent prompt                                                |
+| P1       | HeyGen TTS API shape mismatch                | Open                | Verify current API response (`data.voices` vs direct list), update step-4-vo.md                |
+| P2       | Transcription CLI hangs silently             | Open                | Progress indicator + cleaner error messages + direct `whisper` fallback                        |
+| P2       | Hashed font filenames unreadable             | Open                | Capture pipeline should preserve font-family → filename mapping                                |
+| P2       | Kokoro mispronounces product names           | Open                | Pronunciation guide in step-4-vo.md                                                            |
+| P2       | WCAG contrast false positive on gradient bg  | Open                | Document `data-layout-ignore` for decorative elements                                          |
+| P3       | "Inter Variable" not in font map             | Open                | Map "Inter Variable" → "Inter" in font compiler                                                |
+| P3       | Capture ReferenceError (outputDir)           | Open                | Fix CLI bug in AGENTS.md generation                                                            |
+| P3       | Template content null reference              | Open                | Document `getElementById` + null guard pattern                                                 |
 
 ---
 
