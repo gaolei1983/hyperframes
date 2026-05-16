@@ -50,7 +50,7 @@ Run the capture, read ALL extracted data (screenshots, tokens, design styles, te
 
 Write DESIGN.md — a comprehensive brand cheat sheet with 9 sections: Visual Theme, Color Palette, Typography, Component Stylings, Layout Principles, Depth & Elevation, Do's/Don'ts, Responsive Behavior, Agent Prompt Guide. Use `design-styles.json` for exact computed values.
 
-**Gate:** `DESIGN.md` exists in the project directory (200-400 lines, 10-15 colors, 12-16 components).
+**Gate:** `DESIGN.md` exists in the project directory with all 9 sections complete. User review done (colors/fonts/tone confirmed or corrected).
 
 ---
 

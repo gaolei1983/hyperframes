@@ -101,3 +101,17 @@ ab-test/
 compositions/
 video-6-2-patched/
 claude-design-hyperframes-video/
+
+# Review package (rater review copy, not part of repo)
+review-package/
+
+# Session scratch files
+beat1-*.png
+studio-overview.png
+studio-check.png
+eval-page.html
+scripts/generate-eval-page.ts
+transcript.json
+
+# Claude Code project cache
+.claude/projects/
