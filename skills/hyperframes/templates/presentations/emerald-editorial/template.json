@@ -2,12 +2,7 @@
   "slug": "emerald-editorial",
   "name": "Emerald Editorial",
   "tagline": "A magazine-cover business deck: emerald + navy + paper, double-rule masthead ornaments, and a bold Bodoni-style display serif.",
-  "mood": [
-    "editorial",
-    "considered",
-    "confident",
-    "magazine-cover"
-  ],
+  "mood": ["editorial", "considered", "confident", "magazine-cover"],
   "occasion": [
     "leadership presentation",
     "quarterly review",
@@ -15,12 +10,7 @@
     "planning office deck",
     "executive briefing"
   ],
-  "tone": [
-    "literary",
-    "authoritative",
-    "warm",
-    "designed"
-  ],
+  "tone": ["literary", "authoritative", "warm", "designed"],
   "formality": "medium-high",
   "density": "medium",
   "palette": {

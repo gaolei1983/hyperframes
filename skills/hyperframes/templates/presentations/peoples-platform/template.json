@@ -2,12 +2,7 @@
   "slug": "peoples-platform",
   "name": "People's Platform (Block & Bold)",
   "tagline": "Activist poster energy: blue, orange, red on cream, with Alfa Slab + Caveat Brush.",
-  "mood": [
-    "activist",
-    "loud",
-    "graphic",
-    "honest"
-  ],
+  "mood": ["activist", "loud", "graphic", "honest"],
   "occasion": [
     "cultural commentary",
     "manifesto",
@@ -16,12 +11,7 @@
     "campaign pitch",
     "founder vision"
   ],
-  "tone": [
-    "punchy",
-    "direct",
-    "expressive",
-    "warm-bold"
-  ],
+  "tone": ["punchy", "direct", "expressive", "warm-bold"],
   "formality": "medium-low",
   "density": "medium-high",
   "palette": {

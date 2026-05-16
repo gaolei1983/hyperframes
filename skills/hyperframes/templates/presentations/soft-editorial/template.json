@@ -2,12 +2,7 @@
   "slug": "soft-editorial",
   "name": "Soft Editorial",
   "tagline": "Cormorant Garamond serif on warm paper with sage, blush, and lemon accents.",
-  "mood": [
-    "literary",
-    "elegant",
-    "quiet",
-    "warm-classical"
-  ],
+  "mood": ["literary", "elegant", "quiet", "warm-classical"],
   "occasion": [
     "editorial feature",
     "longform brand story",
@@ -16,12 +11,7 @@
     "advisory deliverable",
     "wedding / lifestyle media"
   ],
-  "tone": [
-    "literary",
-    "considered",
-    "warm",
-    "magazine"
-  ],
+  "tone": ["literary", "considered", "warm", "magazine"],
   "formality": "high",
   "density": "low",
   "palette": {

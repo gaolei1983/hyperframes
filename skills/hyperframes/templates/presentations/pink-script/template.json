@@ -2,13 +2,7 @@
   "slug": "pink-script",
   "name": "Pink Script \u2014 After Hours",
   "tagline": "Black canvas, hot pink accent, pearl-cream paper, DM Serif Display headlines: late-night editorial luxury.",
-  "mood": [
-    "nocturnal",
-    "moody",
-    "intentional",
-    "luxe",
-    "expressive"
-  ],
+  "mood": ["nocturnal", "moody", "intentional", "luxe", "expressive"],
   "occasion": [
     "fashion brand deck",
     "creator personal brand",
@@ -16,12 +10,7 @@
     "luxury launch",
     "editorial feature"
   ],
-  "tone": [
-    "literary",
-    "sultry",
-    "considered",
-    "magazine"
-  ],
+  "tone": ["literary", "sultry", "considered", "magazine"],
   "formality": "medium-high",
   "density": "low",
   "palette": {

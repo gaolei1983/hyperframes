@@ -2,13 +2,7 @@
   "slug": "editorial-forest",
   "name": "Editorial Forest",
   "tagline": "Forest green, dusty pink, and warm cream meet Source Serif 4 in a quiet, intentional quarterly-review deck.",
-  "mood": [
-    "editorial",
-    "quiet",
-    "considered",
-    "warm",
-    "intentional"
-  ],
+  "mood": ["editorial", "quiet", "considered", "warm", "intentional"],
   "occasion": [
     "quarterly review",
     "internal readout",
@@ -16,12 +10,7 @@
     "creative agency deck",
     "research recap"
   ],
-  "tone": [
-    "literary",
-    "thoughtful",
-    "warm",
-    "low-pressure"
-  ],
+  "tone": ["literary", "thoughtful", "warm", "low-pressure"],
   "formality": "medium",
   "density": "medium",
   "palette": {

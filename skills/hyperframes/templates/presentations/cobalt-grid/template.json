@@ -2,14 +2,7 @@
   "slug": "cobalt-grid",
   "name": "Cobalt Grid",
   "tagline": "Electric cobalt serifs on a graph-paper canvas, anchored by stair-stepped pixel-glitch decorations and slim hairline rules.",
-  "mood": [
-    "editorial",
-    "design-research",
-    "studious",
-    "modernist",
-    "tech-print",
-    "monochrome"
-  ],
+  "mood": ["editorial", "design-research", "studious", "modernist", "tech-print", "monochrome"],
   "occasion": [
     "design trend or research report",
     "studio annual or seasonal bulletin",
@@ -18,13 +11,7 @@
     "academic / curatorial publication",
     "newsletter or zine pitch"
   ],
-  "tone": [
-    "considered",
-    "literary",
-    "studious",
-    "quietly-modern",
-    "editorial"
-  ],
+  "tone": ["considered", "literary", "studious", "quietly-modern", "editorial"],
   "formality": "high",
   "density": "medium",
   "palette": {

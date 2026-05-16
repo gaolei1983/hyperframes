@@ -2,12 +2,7 @@
   "slug": "playful",
   "name": "Playful",
   "tagline": "Sun-warm peach background with Syne display: a friendly indie launch deck.",
-  "mood": [
-    "warm",
-    "approachable",
-    "indie",
-    "friendly"
-  ],
+  "mood": ["warm", "approachable", "indie", "friendly"],
   "occasion": [
     "creator portfolio",
     "indie product launch",
@@ -15,11 +10,7 @@
     "small-business pitch",
     "newsletter / community"
   ],
-  "tone": [
-    "upbeat",
-    "informal",
-    "welcoming"
-  ],
+  "tone": ["upbeat", "informal", "welcoming"],
   "formality": "low",
   "density": "medium",
   "palette": {

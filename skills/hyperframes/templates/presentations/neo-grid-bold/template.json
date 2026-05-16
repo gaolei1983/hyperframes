@@ -2,12 +2,7 @@
   "slug": "neo-grid-bold",
   "name": "Neo-Grid Bold",
   "tagline": "Editorial neo-brutalism with a single neon yellow accent on off-white paper.",
-  "mood": [
-    "confident",
-    "punchy",
-    "editorial",
-    "modern"
-  ],
+  "mood": ["confident", "punchy", "editorial", "modern"],
   "occasion": [
     "product launch",
     "design review",
@@ -16,12 +11,7 @@
     "consulting findings",
     "conference talk"
   ],
-  "tone": [
-    "bold",
-    "minimal",
-    "design-led",
-    "graphic"
-  ],
+  "tone": ["bold", "minimal", "design-led", "graphic"],
   "formality": "medium",
   "density": "high",
   "palette": {

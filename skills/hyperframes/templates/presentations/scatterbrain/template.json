@@ -2,13 +2,7 @@
   "slug": "scatterbrain",
   "name": "Scatterbrain",
   "tagline": "Post-it inspired: pastel sticky notes, Caveat handwriting, Shrikhand and Zilla Slab type stack.",
-  "mood": [
-    "playful",
-    "creative",
-    "warm",
-    "messy-on-purpose",
-    "workshop"
-  ],
+  "mood": ["playful", "creative", "warm", "messy-on-purpose", "workshop"],
   "occasion": [
     "brainstorm / workshop",
     "creative agency credentials",
@@ -16,12 +10,7 @@
     "ideation pitch",
     "art-direction review"
   ],
-  "tone": [
-    "informal",
-    "warm",
-    "expressive",
-    "human"
-  ],
+  "tone": ["informal", "warm", "expressive", "human"],
   "formality": "low",
   "density": "high",
   "palette": {

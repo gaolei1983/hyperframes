@@ -2,12 +2,7 @@
   "slug": "raw-grid",
   "name": "Raw Grid",
   "tagline": "Neo-brutalist deck with thick borders, offset shadows, and a pink/sage/ink palette.",
-  "mood": [
-    "raw",
-    "punchy",
-    "energetic",
-    "confident"
-  ],
+  "mood": ["raw", "punchy", "energetic", "confident"],
   "occasion": [
     "startup pitch",
     "accelerator demo day",
@@ -16,12 +11,7 @@
     "brand deck",
     "creator portfolio"
   ],
-  "tone": [
-    "direct",
-    "modern",
-    "no-nonsense",
-    "graphic"
-  ],
+  "tone": ["direct", "modern", "no-nonsense", "graphic"],
   "formality": "medium-low",
   "density": "high",
   "palette": {

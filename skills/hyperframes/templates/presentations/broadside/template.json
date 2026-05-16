@@ -2,12 +2,7 @@
   "slug": "broadside",
   "name": "Broadside",
   "tagline": "Dark editorial canvas with a single fire orange accent and bilingual Latin/Chinese type stack.",
-  "mood": [
-    "editorial",
-    "dramatic",
-    "loud",
-    "newspaper"
-  ],
+  "mood": ["editorial", "dramatic", "loud", "newspaper"],
   "occasion": [
     "brand manifesto",
     "founder vision deck",
@@ -16,12 +11,7 @@
     "bilingual EN/CN deck",
     "campaign launch"
   ],
-  "tone": [
-    "graphic",
-    "punchy",
-    "literary",
-    "considered"
-  ],
+  "tone": ["graphic", "punchy", "literary", "considered"],
   "formality": "medium-high",
   "density": "medium",
   "palette": {

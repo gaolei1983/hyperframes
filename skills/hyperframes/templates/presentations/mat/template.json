@@ -2,12 +2,7 @@
   "slug": "mat",
   "name": "Mat",
   "tagline": "Dark sage canvas with bone paper and burnt-orange accent; mid-century modern with wood undertones.",
-  "mood": [
-    "warm-modern",
-    "considered",
-    "tactile",
-    "mid-century"
-  ],
+  "mood": ["warm-modern", "considered", "tactile", "mid-century"],
   "occasion": [
     "design studio credentials",
     "architecture / interior brand",
@@ -16,12 +11,7 @@
     "advisory deliverable",
     "bilingual EN/CN deck"
   ],
-  "tone": [
-    "warm",
-    "design-led",
-    "intentional",
-    "considered"
-  ],
+  "tone": ["warm", "design-led", "intentional", "considered"],
   "formality": "medium",
   "density": "medium",
   "palette": {

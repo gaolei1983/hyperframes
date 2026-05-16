@@ -2,13 +2,7 @@
   "slug": "biennale-yellow",
   "name": "Biennale Yellow",
   "tagline": "Solar yellow on warm parchment with deep indigo serif and atmospheric sun-glow gradients.",
-  "mood": [
-    "editorial",
-    "atmospheric",
-    "warm",
-    "cultural-institution",
-    "poster-like"
-  ],
+  "mood": ["editorial", "atmospheric", "warm", "cultural-institution", "poster-like"],
   "occasion": [
     "exhibition or biennale",
     "arts institution programme",
@@ -17,13 +11,7 @@
     "studio annual report",
     "museum season announcement"
   ],
-  "tone": [
-    "literary",
-    "considered",
-    "contemplative",
-    "warm-modern",
-    "Dutch-editorial"
-  ],
+  "tone": ["literary", "considered", "contemplative", "warm-modern", "Dutch-editorial"],
   "formality": "high",
   "density": "medium",
   "palette": {

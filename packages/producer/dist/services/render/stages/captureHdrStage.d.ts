@@ -19,60 +19,87 @@
  *     paths so they don't run twice when the success path already closed.
  *   - `hdrVideoFrameSources` is drained + cleared in the outer `finally`
  *     regardless of how the body exits.
- *   - `cfg.forceScreenshot = true` is set unconditionally inside the
- *     layered path because `captureAlphaPng` hangs under
- *     `--enable-begin-frame-control`.
+ *   - The layered path unconditionally captures in screenshot mode
+ *     because `captureAlphaPng` hangs under `--enable-begin-frame-control`.
+ *     Previously the stage mutated `cfg.forceScreenshot = true` directly;
+ *     the value is now derived into a local `hdrCfg` so the caller-owned
+ *     `cfg` survives the stage unchanged. The sequencer is expected to
+ *     pass `forceScreenshot: true` for the layered branch as a contract
+ *     check.
  *
  * Known follow-up: same runtime import cycle pattern as the other
  * capture stages — the stage imports HDR helpers from
  * `renderOrchestrator.ts` (runtime), which imports the stage back.
  * Safe at runtime; a future PR will consolidate these helpers.
  */
-import { type BeforeCaptureHook, type CaptureOptions, type EngineConfig, type HdrTransfer, getEncoderPreset } from "@hyperframes/engine";
+import {
+  type BeforeCaptureHook,
+  type CaptureOptions,
+  type EngineConfig,
+  type HdrTransfer,
+  getEncoderPreset,
+} from "@hyperframes/engine";
 import type { FileServerHandle } from "../../fileServer.js";
 import type { ProducerLogger } from "../../../logger.js";
-import { type HdrDiagnostics, type HdrPerfCollector, type ProgressCallback, type RenderJob } from "../../renderOrchestrator.js";
+import {
+  type HdrDiagnostics,
+  type HdrPerfCollector,
+  type ProgressCallback,
+  type RenderJob,
+} from "../../renderOrchestrator.js";
 import { type CompositionMetadata } from "../shared.js";
 export interface CaptureHdrStageInput {
-    job: RenderJob;
-    cfg: EngineConfig;
-    log: ProducerLogger;
-    projectDir: string;
-    compiledDir: string;
-    framesDir: string;
-    videoOnlyPath: string;
-    width: number;
-    height: number;
-    totalFrames: number;
-    composition: CompositionMetadata;
-    hasHdrContent: boolean;
-    effectiveHdr: {
+  job: RenderJob;
+  cfg: EngineConfig;
+  /**
+   * Capture-mode flag threaded from `compileStage`. The HDR layered
+   * branch requires `true` (see file header for the
+   * `captureAlphaPng` / `--enable-begin-frame-control` constraint);
+   * the stage throws if called with `false`. Stored locally as
+   * `hdrCfg.forceScreenshot` so the caller-owned `cfg` is not mutated.
+   */
+  forceScreenshot: boolean;
+  log: ProducerLogger;
+  projectDir: string;
+  compiledDir: string;
+  framesDir: string;
+  videoOnlyPath: string;
+  width: number;
+  height: number;
+  totalFrames: number;
+  composition: CompositionMetadata;
+  hasHdrContent: boolean;
+  effectiveHdr:
+    | {
         transfer: HdrTransfer;
-    } | undefined;
-    nativeHdrVideoIds: Set<string>;
-    nativeHdrImageIds: Set<string>;
-    videoTransfers: Map<string, HdrTransfer>;
-    imageTransfers: Map<string, HdrTransfer>;
-    hdrImageSrcPaths: Map<string, string>;
-    preset: ReturnType<typeof getEncoderPreset>;
-    effectiveQuality: number;
-    effectiveBitrate: string | undefined;
-    fileServer: FileServerHandle;
-    buildCaptureOptions: () => CaptureOptions;
-    createRenderVideoFrameInjector: () => BeforeCaptureHook | null;
-    /** Mutated in place (counters incremented). */
-    hdrDiagnostics: HdrDiagnostics;
-    abortSignal: AbortSignal | undefined;
-    assertNotAborted: () => void;
-    onProgress?: ProgressCallback;
+      }
+    | undefined;
+  nativeHdrVideoIds: Set<string>;
+  nativeHdrImageIds: Set<string>;
+  videoTransfers: Map<string, HdrTransfer>;
+  imageTransfers: Map<string, HdrTransfer>;
+  hdrImageSrcPaths: Map<string, string>;
+  preset: ReturnType<typeof getEncoderPreset>;
+  effectiveQuality: number;
+  effectiveBitrate: string | undefined;
+  fileServer: FileServerHandle;
+  buildCaptureOptions: () => CaptureOptions;
+  createRenderVideoFrameInjector: () => BeforeCaptureHook | null;
+  /** Mutated in place (counters incremented). */
+  hdrDiagnostics: HdrDiagnostics;
+  abortSignal: AbortSignal | undefined;
+  assertNotAborted: () => void;
+  onProgress?: ProgressCallback;
 }
 export interface CaptureHdrStageResult {
-    lastBrowserConsole: string[];
-    hdrPerf: HdrPerfCollector | undefined;
-    /** Wall-clock ms for the HDR capture phase. */
-    captureDurationMs: number;
-    /** ffmpeg-reported encode duration; overlapped with capture. */
-    encodeMs: number;
+  lastBrowserConsole: string[];
+  hdrPerf: HdrPerfCollector | undefined;
+  /** Wall-clock ms for the HDR capture phase. */
+  captureDurationMs: number;
+  /** ffmpeg-reported encode duration; overlapped with capture. */
+  encodeMs: number;
 }
-export declare function runCaptureHdrStage(input: CaptureHdrStageInput): Promise<CaptureHdrStageResult>;
+export declare function runCaptureHdrStage(
+  input: CaptureHdrStageInput,
+): Promise<CaptureHdrStageResult>;
 //# sourceMappingURL=captureHdrStage.d.ts.map

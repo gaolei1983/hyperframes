@@ -2,12 +2,7 @@
   "slug": "editorial-tri-tone",
   "name": "Editorial Tri-Tone",
   "tagline": "Three-color editorial system: dusty pink, mustard cream, and deep burgundy, set in Bricolage + Instrument Serif.",
-  "mood": [
-    "editorial",
-    "warm",
-    "intentional",
-    "moody"
-  ],
+  "mood": ["editorial", "warm", "intentional", "moody"],
   "occasion": [
     "editorial / magazine pitch",
     "fashion brand deck",
@@ -15,12 +10,7 @@
     "literary / cultural",
     "art direction review"
   ],
-  "tone": [
-    "literary",
-    "warm",
-    "considered",
-    "stylish"
-  ],
+  "tone": ["literary", "warm", "considered", "stylish"],
   "formality": "medium-high",
   "density": "medium",
   "palette": {

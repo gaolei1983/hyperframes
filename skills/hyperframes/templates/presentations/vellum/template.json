@@ -2,13 +2,7 @@
   "slug": "vellum",
   "name": "Vellum",
   "tagline": "Deep navy canvas with warm-yellow Cormorant serifs and a single dusty teal accent. A quiet, scholarly aesthetic.",
-  "mood": [
-    "scholarly",
-    "literary",
-    "considered",
-    "quiet",
-    "intellectual"
-  ],
+  "mood": ["scholarly", "literary", "considered", "quiet", "intellectual"],
   "occasion": [
     "research findings",
     "white paper or longform report",
@@ -18,12 +12,7 @@
     "founder reflection / vision deck",
     "bilingual EN/CN deck"
   ],
-  "tone": [
-    "literary",
-    "considered",
-    "patient",
-    "intelligent"
-  ],
+  "tone": ["literary", "considered", "patient", "intelligent"],
   "formality": "high",
   "density": "low",
   "palette": {

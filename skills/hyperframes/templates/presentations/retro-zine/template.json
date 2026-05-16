@@ -2,12 +2,7 @@
   "slug": "retro-zine",
   "name": "Retro Zine",
   "tagline": "Beige paper with green accent and Bebas Neue + Caveat: a riso-printed zine in HTML form.",
-  "mood": [
-    "crafted",
-    "lo-fi",
-    "underground",
-    "warm-retro"
-  ],
+  "mood": ["crafted", "lo-fi", "underground", "warm-retro"],
   "occasion": [
     "indie zine / publication",
     "music or arts brand",
@@ -15,12 +10,7 @@
     "small-batch / craft launch",
     "cultural / community deck"
   ],
-  "tone": [
-    "scrappy",
-    "warm",
-    "intentional",
-    "DIY"
-  ],
+  "tone": ["scrappy", "warm", "intentional", "DIY"],
   "formality": "medium-low",
   "density": "medium",
   "palette": {

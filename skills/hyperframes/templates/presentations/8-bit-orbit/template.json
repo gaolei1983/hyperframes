@@ -2,12 +2,7 @@
   "slug": "8-bit-orbit",
   "name": "8-Bit Orbit",
   "tagline": "Pixel-art neon arcade aesthetic on a deep navy void.",
-  "mood": [
-    "retro-tech",
-    "playful",
-    "cyberpunk",
-    "energetic"
-  ],
+  "mood": ["retro-tech", "playful", "cyberpunk", "energetic"],
   "occasion": [
     "gaming pitch",
     "hackathon demo",
@@ -16,12 +11,7 @@
     "developer tools",
     "synthwave brand"
   ],
-  "tone": [
-    "geeky",
-    "neon",
-    "rebellious",
-    "sci-fi"
-  ],
+  "tone": ["geeky", "neon", "rebellious", "sci-fi"],
   "formality": "low",
   "density": "medium",
   "palette": {

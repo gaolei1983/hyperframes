@@ -2,13 +2,7 @@
   "slug": "studio",
   "name": "Studio",
   "tagline": "Black canvas with electric-yellow type; high-voltage design studio aesthetic.",
-  "mood": [
-    "electric",
-    "bold",
-    "graphic",
-    "design-led",
-    "high-contrast"
-  ],
+  "mood": ["electric", "bold", "graphic", "design-led", "high-contrast"],
   "occasion": [
     "design studio credentials",
     "creative agency pitch",
@@ -17,12 +11,7 @@
     "fashion / sneaker brand",
     "bilingual EN/CN deck"
   ],
-  "tone": [
-    "graphic",
-    "loud",
-    "modern",
-    "intentional"
-  ],
+  "tone": ["graphic", "loud", "modern", "intentional"],
   "formality": "medium",
   "density": "medium",
   "palette": {

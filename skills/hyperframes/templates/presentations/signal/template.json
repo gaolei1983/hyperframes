@@ -2,12 +2,7 @@
   "slug": "signal",
   "name": "Signal",
   "tagline": "Deep navy canvas with bone paper and a single muted-gold accent; institutional with quiet weight.",
-  "mood": [
-    "institutional",
-    "trustworthy",
-    "considered",
-    "weighty"
-  ],
+  "mood": ["institutional", "trustworthy", "considered", "weighty"],
   "occasion": [
     "investor deck",
     "consulting deliverable",
@@ -17,12 +12,7 @@
     "advisory pitch",
     "bilingual EN/CN deck"
   ],
-  "tone": [
-    "sober",
-    "polished",
-    "established",
-    "literary"
-  ],
+  "tone": ["sober", "polished", "established", "literary"],
   "formality": "high",
   "density": "high",
   "palette": {

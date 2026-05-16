@@ -2,12 +2,7 @@
   "slug": "cartesian",
   "name": "Cartesian",
   "tagline": "Quiet warm-neutral palette with classical Playfair serifs; tasteful and unhurried.",
-  "mood": [
-    "quiet",
-    "considered",
-    "elegant",
-    "warm-minimal"
-  ],
+  "mood": ["quiet", "considered", "elegant", "warm-minimal"],
   "occasion": [
     "investment thesis",
     "white paper",
@@ -16,12 +11,7 @@
     "book / longform pitch",
     "gallery / cultural"
   ],
-  "tone": [
-    "classical",
-    "literary",
-    "restrained",
-    "confident-quiet"
-  ],
+  "tone": ["classical", "literary", "restrained", "confident-quiet"],
   "formality": "high",
   "density": "low",
   "palette": {

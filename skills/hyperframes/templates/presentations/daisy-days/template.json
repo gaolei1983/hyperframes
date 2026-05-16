@@ -2,13 +2,7 @@
   "slug": "daisy-days",
   "name": "Daisy Days",
   "tagline": "Cheerful pastel deck with hand-drawn daisies, stars, and rainbows. Friendly, soft, and warm.",
-  "mood": [
-    "cheerful",
-    "playful",
-    "warm",
-    "sunny",
-    "wholesome"
-  ],
+  "mood": ["cheerful", "playful", "warm", "sunny", "wholesome"],
   "occasion": [
     "education / classroom",
     "kids product launch",
@@ -18,13 +12,7 @@
     "team kickoff",
     "wedding / baby shower planning"
   ],
-  "tone": [
-    "friendly",
-    "soft",
-    "encouraging",
-    "approachable",
-    "lighthearted"
-  ],
+  "tone": ["friendly", "soft", "encouraging", "approachable", "lighthearted"],
   "formality": "low",
   "density": "medium",
   "palette": {

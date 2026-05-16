@@ -2,13 +2,7 @@
   "slug": "capsule",
   "name": "Capsule",
   "tagline": "Modular pill-shaped cards on warm bone with a full pastel-pop palette.",
-  "mood": [
-    "playful",
-    "modern",
-    "warm",
-    "fresh",
-    "fun"
-  ],
+  "mood": ["playful", "modern", "warm", "fresh", "fun"],
   "occasion": [
     "lifestyle brand",
     "creator portfolio",
@@ -16,12 +10,7 @@
     "wellness or beauty pitch",
     "Y2K-tinged brand work"
   ],
-  "tone": [
-    "upbeat",
-    "graphic",
-    "approachable",
-    "cool"
-  ],
+  "tone": ["upbeat", "graphic", "approachable", "cool"],
   "formality": "medium-low",
   "density": "medium",
   "palette": {

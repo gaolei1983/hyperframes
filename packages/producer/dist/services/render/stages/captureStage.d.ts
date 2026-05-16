@@ -35,45 +35,64 @@
  * `safeCleanup`, `sampleDirectoryBytes`, etc.) into a shared module so
  * the stages can import them without reaching back into the orchestrator.
  */
-import { type BeforeCaptureHook, type CaptureOptions, type CaptureSession, type EngineConfig } from "@hyperframes/engine";
+import {
+  type BeforeCaptureHook,
+  type CaptureOptions,
+  type CaptureSession,
+  type EngineConfig,
+} from "@hyperframes/engine";
 import type { FileServerHandle } from "../../fileServer.js";
 import type { ProducerLogger } from "../../../logger.js";
-import { type CaptureAttemptSummary, type ProgressCallback, type RenderJob } from "../../renderOrchestrator.js";
+import {
+  type CaptureAttemptSummary,
+  type ProgressCallback,
+  type RenderJob,
+} from "../../renderOrchestrator.js";
 export interface CaptureStageInput {
-    fileServer: FileServerHandle;
-    workDir: string;
-    framesDir: string;
-    job: RenderJob;
-    /**
-     * `job.totalFrames` is `number | undefined` in the public type — the
-     * sequencer narrows it to a `number` via the probeStage result before
-     * calling this stage. Passed in explicitly here so the stage doesn't
-     * have to re-narrow on every reference.
-     */
-    totalFrames: number;
-    cfg: EngineConfig;
-    log: ProducerLogger;
-    /** Initial worker count from `resolveRenderWorkerCount`; adaptive retry may reduce it. */
-    workerCount: number;
-    /** Reused for the sequential path's first session if non-null. */
-    probeSession: CaptureSession | null;
-    /** True for webm / mov / png-sequence (controls capture format + extension). */
-    needsAlpha: boolean;
-    /** Mutated in place — each parallel retry attempt is appended. */
-    captureAttempts: CaptureAttemptSummary[];
-    buildCaptureOptions: () => CaptureOptions;
-    createRenderVideoFrameInjector: () => BeforeCaptureHook | null;
-    abortSignal: AbortSignal | undefined;
-    assertNotAborted: () => void;
-    onProgress?: ProgressCallback;
+  fileServer: FileServerHandle;
+  workDir: string;
+  framesDir: string;
+  job: RenderJob;
+  /**
+   * `job.totalFrames` is `number | undefined` in the public type — the
+   * sequencer narrows it to a `number` via the probeStage result before
+   * calling this stage. Passed in explicitly here so the stage doesn't
+   * have to re-narrow on every reference.
+   */
+  totalFrames: number;
+  cfg: EngineConfig;
+  /**
+   * Capture-mode flag threaded from `compileStage`. The stage derives a
+   * local copy of `cfg` with this value applied to `forceScreenshot`
+   * before any engine call, so the caller-owned `cfg` is never mutated.
+   * The sequencer may override `compileResult.forceScreenshot` after a
+   * BeginFrame calibration timeout — passing the override through this
+   * parameter keeps the decision visible at the call site instead of
+   * hiding it inside a shared mutable config.
+   */
+  forceScreenshot: boolean;
+  log: ProducerLogger;
+  /** Initial worker count from `resolveRenderWorkerCount`; adaptive retry may reduce it. */
+  workerCount: number;
+  /** Reused for the sequential path's first session if non-null. */
+  probeSession: CaptureSession | null;
+  /** True for webm / mov / png-sequence (controls capture format + extension). */
+  needsAlpha: boolean;
+  /** Mutated in place — each parallel retry attempt is appended. */
+  captureAttempts: CaptureAttemptSummary[];
+  buildCaptureOptions: () => CaptureOptions;
+  createRenderVideoFrameInjector: () => BeforeCaptureHook | null;
+  abortSignal: AbortSignal | undefined;
+  assertNotAborted: () => void;
+  onProgress?: ProgressCallback;
 }
 export interface CaptureStageResult {
-    /** Final worker count after any adaptive retry. */
-    workerCount: number;
-    /** Always `null` after the stage — the probe session is closed before the stage returns. */
-    probeSession: CaptureSession | null;
-    /** Browser console buffer from whichever session was active last. */
-    lastBrowserConsole: string[];
+  /** Final worker count after any adaptive retry. */
+  workerCount: number;
+  /** Always `null` after the stage — the probe session is closed before the stage returns. */
+  probeSession: CaptureSession | null;
+  /** Browser console buffer from whichever session was active last. */
+  lastBrowserConsole: string[];
 }
 export declare function runCaptureStage(input: CaptureStageInput): Promise<CaptureStageResult>;
 //# sourceMappingURL=captureStage.d.ts.map

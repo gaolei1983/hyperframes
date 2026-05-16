@@ -2,13 +2,7 @@
   "slug": "grove",
   "name": "Grove",
   "tagline": "Forest-green canvas with cream type, classical Playfair serifs, and a single rust accent.",
-  "mood": [
-    "organic",
-    "considered",
-    "warm",
-    "literary",
-    "natural"
-  ],
+  "mood": ["organic", "considered", "warm", "literary", "natural"],
   "occasion": [
     "sustainability brand",
     "wellness brand",
@@ -18,12 +12,7 @@
     "advisory deliverable",
     "bilingual EN/CN deck"
   ],
-  "tone": [
-    "classical",
-    "warm",
-    "considered",
-    "patient"
-  ],
+  "tone": ["classical", "warm", "considered", "patient"],
   "formality": "medium-high",
   "density": "medium",
   "palette": {

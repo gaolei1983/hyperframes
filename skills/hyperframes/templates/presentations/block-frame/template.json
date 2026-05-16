@@ -2,12 +2,7 @@
   "slug": "block-frame",
   "name": "BlockFrame",
   "tagline": "Neobrutalist deck with pastel-neon color blocks and chunky black borders.",
-  "mood": [
-    "bold",
-    "playful",
-    "graphic",
-    "fresh"
-  ],
+  "mood": ["bold", "playful", "graphic", "fresh"],
   "occasion": [
     "creative agency pitch",
     "indie SaaS launch",
@@ -15,12 +10,7 @@
     "brand redesign",
     "modern startup deck"
   ],
-  "tone": [
-    "confident",
-    "graphic",
-    "pop",
-    "design-led"
-  ],
+  "tone": ["confident", "graphic", "pop", "design-led"],
   "formality": "medium-low",
   "density": "high",
   "palette": {

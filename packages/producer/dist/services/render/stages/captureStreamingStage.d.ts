@@ -39,7 +39,13 @@
  * Safe at runtime; a subsequent change will move the capture helpers
  * into a shared module so the stages can import without reaching back.
  */
-import { type BeforeCaptureHook, type CaptureOptions, type CaptureSession, type EngineConfig, spawnStreamingEncoder } from "@hyperframes/engine";
+import {
+  type BeforeCaptureHook,
+  type CaptureOptions,
+  type CaptureSession,
+  type EngineConfig,
+  spawnStreamingEncoder,
+} from "@hyperframes/engine";
 import type { FileServerHandle } from "../../fileServer.js";
 import type { ProducerLogger } from "../../../logger.js";
 import type { ProgressCallback, RenderJob } from "../../renderOrchestrator.js";
@@ -52,41 +58,55 @@ import type { ProgressCallback, RenderJob } from "../../renderOrchestrator.js";
  */
 export type StreamingEncoderOptions = Parameters<typeof spawnStreamingEncoder>[1];
 export interface CaptureStreamingStageInput {
-    fileServer: FileServerHandle;
-    workDir: string;
-    framesDir: string;
-    videoOnlyPath: string;
-    job: RenderJob;
-    /**
-     * `job.totalFrames` is `number | undefined` in the public type — the
-     * sequencer narrows it via the probeStage result before calling here.
-     */
-    totalFrames: number;
-    cfg: EngineConfig;
-    log: ProducerLogger;
-    workerCount: number;
-    probeSession: CaptureSession | null;
-    /** For the spawn-failure log message context only. */
-    outputFormat: string;
-    /** Pre-built encoder options; passed straight to `spawnStreamingEncoder`. */
-    streamingEncoderOptions: StreamingEncoderOptions;
-    buildCaptureOptions: () => CaptureOptions;
-    createRenderVideoFrameInjector: () => BeforeCaptureHook | null;
-    abortSignal: AbortSignal | undefined;
-    assertNotAborted: () => void;
-    onProgress?: ProgressCallback;
+  fileServer: FileServerHandle;
+  workDir: string;
+  framesDir: string;
+  videoOnlyPath: string;
+  job: RenderJob;
+  /**
+   * `job.totalFrames` is `number | undefined` in the public type — the
+   * sequencer narrows it via the probeStage result before calling here.
+   */
+  totalFrames: number;
+  cfg: EngineConfig;
+  /**
+   * Capture-mode flag threaded from `compileStage`. The stage derives a
+   * local copy of `cfg` with this value applied to `forceScreenshot`
+   * before any engine call, so the caller-owned `cfg` is never mutated.
+   * The sequencer may override `compileResult.forceScreenshot` after a
+   * BeginFrame calibration timeout — passing the override through this
+   * parameter keeps the decision visible at the call site instead of
+   * hiding it inside a shared mutable config.
+   */
+  forceScreenshot: boolean;
+  log: ProducerLogger;
+  workerCount: number;
+  probeSession: CaptureSession | null;
+  /** For the spawn-failure log message context only. */
+  outputFormat: string;
+  /** Pre-built encoder options; passed straight to `spawnStreamingEncoder`. */
+  streamingEncoderOptions: StreamingEncoderOptions;
+  buildCaptureOptions: () => CaptureOptions;
+  createRenderVideoFrameInjector: () => BeforeCaptureHook | null;
+  abortSignal: AbortSignal | undefined;
+  assertNotAborted: () => void;
+  onProgress?: ProgressCallback;
 }
-export type CaptureStreamingStageResult = {
-    /** Streaming path ran successfully — sequencer should skip the disk path AND Stage 5 encode. */
-    success: true;
-    /** Wall-clock ms for the encode phase (overlapped with capture; from the encoder's own report). */
-    encodeMs: number;
-    probeSession: CaptureSession | null;
-    lastBrowserConsole: string[];
-    workerCount: number;
-} | {
-    /** Spawn failed (non-abort) — sequencer should fall back to the disk path. */
-    success: false;
-};
-export declare function runCaptureStreamingStage(input: CaptureStreamingStageInput): Promise<CaptureStreamingStageResult>;
+export type CaptureStreamingStageResult =
+  | {
+      /** Streaming path ran successfully — sequencer should skip the disk path AND Stage 5 encode. */
+      success: true;
+      /** Wall-clock ms for the encode phase (overlapped with capture; from the encoder's own report). */
+      encodeMs: number;
+      probeSession: CaptureSession | null;
+      lastBrowserConsole: string[];
+      workerCount: number;
+    }
+  | {
+      /** Spawn failed (non-abort) — sequencer should fall back to the disk path. */
+      success: false;
+    };
+export declare function runCaptureStreamingStage(
+  input: CaptureStreamingStageInput,
+): Promise<CaptureStreamingStageResult>;
 //# sourceMappingURL=captureStreamingStage.d.ts.map

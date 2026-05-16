@@ -2,15 +2,7 @@
   "slug": "long-table",
   "name": "Long Table",
   "tagline": "Warm cream and rust-red supper-club aesthetic with bold uppercase grotesk headlines, Fraunces serifs, and pill-shaped outlined buttons.",
-  "mood": [
-    "warm",
-    "intimate",
-    "modern",
-    "friendly",
-    "small-batch",
-    "social",
-    "hospitality"
-  ],
+  "mood": ["warm", "intimate", "modern", "friendly", "small-batch", "social", "hospitality"],
   "occasion": [
     "supper club or dinner series",
     "event or community gathering",
@@ -20,14 +12,7 @@
     "wine or food brand catalogue",
     "modern lifestyle brand"
   ],
-  "tone": [
-    "warm",
-    "playful",
-    "considered",
-    "social",
-    "magazine-friendly",
-    "modern-editorial"
-  ],
+  "tone": ["warm", "playful", "considered", "social", "magazine-friendly", "modern-editorial"],
   "formality": "medium",
   "density": "medium",
   "palette": {

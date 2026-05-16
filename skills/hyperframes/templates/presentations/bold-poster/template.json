@@ -2,12 +2,7 @@
   "slug": "bold-poster",
   "name": "Bold Poster",
   "tagline": "Editorial poster aesthetic with massive Shrikhand display and a single fire-engine red accent.",
-  "mood": [
-    "bold",
-    "editorial",
-    "loud",
-    "confident"
-  ],
+  "mood": ["bold", "editorial", "loud", "confident"],
   "occasion": [
     "brand manifesto",
     "creative-led pitch",
@@ -15,12 +10,7 @@
     "founder vision deck",
     "art / culture"
   ],
-  "tone": [
-    "dramatic",
-    "graphic",
-    "sharp",
-    "intentional"
-  ],
+  "tone": ["dramatic", "graphic", "sharp", "intentional"],
   "formality": "medium",
   "density": "low",
   "palette": {

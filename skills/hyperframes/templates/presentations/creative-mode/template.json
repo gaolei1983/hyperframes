@@ -2,12 +2,7 @@
   "slug": "creative-mode",
   "name": "Creative Mode",
   "tagline": "Cream paper canvas with confident multi-color (green, pink, orange, yellow) accents and Archivo Black display.",
-  "mood": [
-    "creative",
-    "confident",
-    "playful",
-    "design-led"
-  ],
+  "mood": ["creative", "confident", "playful", "design-led"],
   "occasion": [
     "creative agency pitch",
     "design studio deck",
@@ -15,11 +10,7 @@
     "brand creative review",
     "concept presentation"
   ],
-  "tone": [
-    "graphic",
-    "expressive",
-    "modern"
-  ],
+  "tone": ["graphic", "expressive", "modern"],
   "formality": "medium",
   "density": "medium-high",
   "palette": {

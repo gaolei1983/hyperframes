@@ -2,12 +2,7 @@
   "slug": "retro-windows",
   "name": "Retro Windows",
   "tagline": "Windows 95 chrome: gray title bars, MS Sans Serif, pixel typography, full nostalgia.",
-  "mood": [
-    "nostalgic",
-    "retro",
-    "geeky",
-    "playful"
-  ],
+  "mood": ["nostalgic", "retro", "geeky", "playful"],
   "occasion": [
     "retro gaming pitch",
     "Y2K brand",
@@ -15,12 +10,7 @@
     "tech-history talk",
     "shitpost-but-make-it-fancy deck"
   ],
-  "tone": [
-    "winking",
-    "nostalgic",
-    "geeky",
-    "fun"
-  ],
+  "tone": ["winking", "nostalgic", "geeky", "fun"],
   "formality": "low",
   "density": "medium",
   "palette": {

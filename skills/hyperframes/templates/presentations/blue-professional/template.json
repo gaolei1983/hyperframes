@@ -2,12 +2,7 @@
   "slug": "blue-professional",
   "name": "Blue Professional",
   "tagline": "Cream paper background with electric cobalt blue accents; clean modern professional.",
-  "mood": [
-    "professional",
-    "modern",
-    "calm",
-    "trustworthy"
-  ],
+  "mood": ["professional", "modern", "calm", "trustworthy"],
   "occasion": [
     "B2B SaaS pitch",
     "consulting deliverable",
@@ -15,12 +10,7 @@
     "advisory pitch",
     "investor update"
   ],
-  "tone": [
-    "clean",
-    "considered",
-    "polished",
-    "neutral"
-  ],
+  "tone": ["clean", "considered", "polished", "neutral"],
   "formality": "medium-high",
   "density": "medium",
   "palette": {

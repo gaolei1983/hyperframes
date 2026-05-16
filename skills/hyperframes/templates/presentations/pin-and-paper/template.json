@@ -2,13 +2,7 @@
   "slug": "pin-and-paper",
   "name": "Pin & Paper",
   "tagline": "Yellow paper with safety-pin illustrations, ink-blue handwritten Caveat, paper-grain texture.",
-  "mood": [
-    "crafted",
-    "handmade",
-    "warm",
-    "thoughtful",
-    "literary"
-  ],
+  "mood": ["crafted", "handmade", "warm", "thoughtful", "literary"],
   "occasion": [
     "research findings with personality",
     "qualitative report",
@@ -16,12 +10,7 @@
     "creator essay deck",
     "workshop debrief"
   ],
-  "tone": [
-    "literary",
-    "intimate",
-    "warm",
-    "grounded"
-  ],
+  "tone": ["literary", "intimate", "warm", "grounded"],
   "formality": "medium",
   "density": "medium",
   "palette": {

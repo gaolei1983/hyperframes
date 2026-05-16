@@ -2,13 +2,7 @@
   "slug": "stencil-tablet",
   "name": "Stencil & Tablet",
   "tagline": "Bone paper with stencil-cut headlines and a six-color earth palette: archaeology meets brand.",
-  "mood": [
-    "archival",
-    "earthy",
-    "tactile",
-    "considered",
-    "graphic"
-  ],
+  "mood": ["archival", "earthy", "tactile", "considered", "graphic"],
   "occasion": [
     "museum / cultural institution",
     "art / architecture brand",
@@ -16,12 +10,7 @@
     "heritage / craft brand",
     "manifesto"
   ],
-  "tone": [
-    "weighty",
-    "considered",
-    "tactile",
-    "literary"
-  ],
+  "tone": ["weighty", "considered", "tactile", "literary"],
   "formality": "medium-high",
   "density": "medium",
   "palette": {

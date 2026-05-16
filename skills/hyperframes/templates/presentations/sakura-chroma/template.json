@@ -2,14 +2,7 @@
   "slug": "sakura-chroma",
   "name": "Sakura Chroma",
   "tagline": "Vintage Japanese cassette-package aesthetic: cream paper, diagonal rainbow ribbons, condensed bold type, JIS-style spec checkboxes.",
-  "mood": [
-    "retro",
-    "playful",
-    "kawaii-tech",
-    "warm",
-    "tactile",
-    "product-catalogue"
-  ],
+  "mood": ["retro", "playful", "kawaii-tech", "warm", "tactile", "product-catalogue"],
   "occasion": [
     "product launch or catalogue",
     "indie hardware or analog studio brand",
@@ -18,13 +11,7 @@
     "magazine or zine pitch",
     "vintage-flavored brand campaign"
   ],
-  "tone": [
-    "playful",
-    "confident",
-    "warm",
-    "tactile",
-    "80s-Japanese-tech"
-  ],
+  "tone": ["playful", "confident", "warm", "tactile", "80s-Japanese-tech"],
   "formality": "low",
   "density": "medium",
   "palette": {
