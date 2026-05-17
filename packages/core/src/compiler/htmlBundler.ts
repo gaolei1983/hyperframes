@@ -7,15 +7,12 @@ import {
   parseHTMLContent,
   stripEmbeddedRuntimeScripts,
 } from "./htmlDocument";
-import {
-  rewriteAssetPaths,
-  rewriteCssAssetUrls,
-  rewriteInlineStyleAssetUrls,
-} from "./rewriteSubCompPaths";
+// rewriteSubCompPaths functions are used by inlineSubCompositions (shared module)
 import { scopeCssToComposition, wrapScopedCompositionScript } from "./compositionScoping";
 import { validateHyperframeHtmlContract } from "./staticGuard";
 import { getHyperframeRuntimeScript } from "../generated/runtime-inline";
 import { readDeclaredDefaults } from "../runtime/getVariables";
+import { inlineSubCompositions } from "./inlineSubCompositions";
 
 /** Resolve a relative path within projectDir, rejecting traversal outside it. */
 function safePath(projectDir: string, relativePath: string): string | null {
@@ -581,144 +578,36 @@ export async function bundleToSingleHtml(
     }
   }
 
-  // Inline sub-compositions
-  const compStyleChunks: string[] = [];
-  const compScriptChunks: string[] = [];
-  const compExternalScriptSrcs: string[] = [];
-  const compVariablesByComp: Record<string, Record<string, unknown>> = {};
+  // Inline sub-compositions (via shared function)
   const trackedCompositionHosts = getBundledTrackedCompositionHosts(document);
   const hostIdentityByElement = assignBundledRuntimeCompositionIds(trackedCompositionHosts);
   const subCompositionHosts = trackedCompositionHosts.filter((host) =>
     host.hasAttribute("data-composition-src"),
   );
-  for (const hostEl of subCompositionHosts) {
-    const src = hostEl.getAttribute("data-composition-src");
-    if (!src || !isRelativeUrl(src)) continue;
-    const compPath = safePath(projectDir, src);
-    const compHtml = compPath ? safeReadFile(compPath) : null;
-    if (compHtml == null) {
-      console.warn(`[Bundler] Composition file not found: ${src}`);
-      continue;
-    }
-
-    const compDoc = parseHTMLContent(compHtml);
-    const hostIdentity = hostIdentityByElement.get(hostEl);
-    const compId = hostIdentity?.authoredCompositionId || null;
-    const runtimeCompId = hostIdentity?.runtimeCompositionId || compId || "";
-    const contentRoot = compDoc.querySelector("template");
-    const contentHtml = contentRoot ? contentRoot.innerHTML || "" : compDoc.body.innerHTML || "";
-    const contentDoc = parseHTMLContent(contentHtml);
-    const innerRoot = compId
-      ? contentDoc.querySelector(`[data-composition-id="${compId}"]`)
-      : contentDoc.querySelector("[data-composition-id]");
-    const inferredCompId = innerRoot?.getAttribute("data-composition-id")?.trim() || "";
-    const authoredRootId = innerRoot?.getAttribute("id")?.trim() || null;
-    const scopeCompId = compId || inferredCompId;
-    const runtimeScope = runtimeCompId
-      ? cssAttributeSelector("data-composition-id", runtimeCompId)
-      : "";
-    const mergedVariables = runtimeCompId
-      ? {
-          ...readDeclaredDefaults(compDoc.documentElement),
-          ...parseHostVariableValues(hostEl),
-        }
-      : {};
-    if (runtimeCompId && Object.keys(mergedVariables).length > 0) {
-      compVariablesByComp[runtimeCompId] = mergedVariables;
-    }
-
-    // When a sub-composition is a full HTML document (no <template>), styles
-    // and scripts in <head> are not part of contentDoc (which only has body
-    // content). Extract them so backgrounds, positioning, fonts, and library
-    // scripts (e.g. GSAP CDN) are not silently dropped.
-    if (!contentRoot && compDoc.head) {
-      for (const s of [...compDoc.head.querySelectorAll("style")]) {
-        const css = rewriteCssAssetUrls(s.textContent || "", src);
-        compStyleChunks.push(
-          scopeCompId ? scopeCssToComposition(css, scopeCompId, runtimeScope, authoredRootId) : css,
-        );
-      }
-      for (const s of [...compDoc.head.querySelectorAll("script")]) {
-        const externalSrc = (s.getAttribute("src") || "").trim();
-        if (externalSrc && !compExternalScriptSrcs.includes(externalSrc)) {
-          compExternalScriptSrcs.push(externalSrc);
-        }
-      }
-    }
-
-    for (const s of [...contentDoc.querySelectorAll("style")]) {
-      const css = rewriteCssAssetUrls(s.textContent || "", src);
-      compStyleChunks.push(
-        scopeCompId ? scopeCssToComposition(css, scopeCompId, runtimeScope, authoredRootId) : css,
-      );
-      s.remove();
-    }
-    for (const s of [...contentDoc.querySelectorAll("script")]) {
-      const externalSrc = (s.getAttribute("src") || "").trim();
-      if (externalSrc) {
-        // External CDN/remote script — collect for deduped injection into the document.
-        // Do NOT try to inline the content (external scripts have no innerHTML).
-        if (!compExternalScriptSrcs.includes(externalSrc)) {
-          compExternalScriptSrcs.push(externalSrc);
-        }
-      } else {
-        compScriptChunks.push(
-          scopeCompId
-            ? wrapScopedCompositionScript(
-                s.textContent || "",
-                scopeCompId,
-                "[HyperFrames] composition script error:",
-                runtimeScope,
-                runtimeCompId || scopeCompId,
-                authoredRootId,
-              )
-            : `(function(){ try { ${s.textContent || ""} } catch (_err) { console.error('[HyperFrames] composition script error:', _err); } })();`,
-        );
-      }
-      s.remove();
-    }
-
-    // Rewrite relative asset paths before inlining so ../foo.svg from
-    // compositions/ resolves correctly when the content moves to root.
-    const assetEls = innerRoot
-      ? innerRoot.querySelectorAll("[src], [href]")
-      : contentDoc.querySelectorAll("[src], [href]");
-    rewriteAssetPaths(
-      assetEls,
-      src,
-      (el: Element, attr: string) => el.getAttribute(attr),
-      (el: Element, attr: string, val: string) => {
-        el.setAttribute(attr, val);
-      },
-    );
-    const styledEls = innerRoot
-      ? innerRoot.querySelectorAll("[style]")
-      : contentDoc.querySelectorAll("[style]");
-    rewriteInlineStyleAssetUrls(
-      styledEls,
-      src,
-      (el: Element) => el.getAttribute("style"),
-      (el: Element, val: string) => {
-        el.setAttribute("style", val);
-      },
-    );
-
-    if (innerRoot) {
-      const innerW = innerRoot.getAttribute("data-width");
-      const innerH = innerRoot.getAttribute("data-height");
-      if (innerW && !hostEl.getAttribute("data-width")) hostEl.setAttribute("data-width", innerW);
-      if (innerH && !hostEl.getAttribute("data-height")) hostEl.setAttribute("data-height", innerH);
-      innerRoot.setAttribute("data-composition-file", src);
-      for (const child of [...innerRoot.querySelectorAll("style, script")]) child.remove();
-      const preparedInnerRoot = prepareFlattenedInnerRoot(innerRoot);
-      hostEl.innerHTML = preparedInnerRoot.outerHTML || "";
-    } else {
-      for (const child of [...contentDoc.querySelectorAll("style, script")]) child.remove();
-      hostEl.innerHTML = contentDoc.body.innerHTML || "";
-    }
-    hostEl.setAttribute("data-composition-file", src);
-    hostEl.removeAttribute("data-composition-src");
-  }
+  const subCompResult = inlineSubCompositions(document, subCompositionHosts, {
+    resolveHtml: (srcPath: string) => {
+      if (!isRelativeUrl(srcPath)) return null;
+      const compPath = safePath(projectDir, srcPath);
+      return compPath ? safeReadFile(compPath) : null;
+    },
+    parseHtml: parseHTMLContent,
+    hostIdentityMap: hostIdentityByElement,
+    rewriteInlineStyles: true,
+    flattenInnerRoot: prepareFlattenedInnerRoot,
+    readVariableDefaults: readDeclaredDefaults,
+    parseHostVariables: parseHostVariableValues,
+    buildScopeSelector: (compId: string) => cssAttributeSelector("data-composition-id", compId),
+    scriptErrorLabel: "[HyperFrames] composition script error:",
+    onMissingComposition: (srcPath: string) => {
+      console.warn(`[Bundler] Composition file not found: ${srcPath}`);
+    },
+  });
+  const compStyleChunks: string[] = [...subCompResult.styles];
+  const compScriptChunks: string[] = [...subCompResult.scripts];
+  const compExternalScriptSrcs: string[] = [...subCompResult.externalScriptSrcs];
+  const compVariablesByComp: Record<string, Record<string, unknown>> = {
+    ...subCompResult.variablesByComp,
+  };
 
   // Inline template compositions: inject <template id="X-template"> content into
   // matching empty host elements with data-composition-id="X" (no data-composition-src)

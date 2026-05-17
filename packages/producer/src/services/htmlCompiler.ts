@@ -20,10 +20,8 @@ import {
   shouldClampMediaDuration,
   type ResolvedDuration,
   type UnresolvedElement,
-  rewriteAssetPaths,
-  rewriteCssAssetUrls,
 } from "@hyperframes/core";
-import { scopeCssToComposition, wrapScopedCompositionScript } from "@hyperframes/core/compiler";
+import { inlineSubCompositions as inlineSubCompositionsShared } from "@hyperframes/core/compiler";
 import { extractMediaMetadata, extractAudioMetadata } from "../utils/ffprobe.js";
 import { isPathInside, toExternalAssetKey } from "../utils/paths.js";
 import {
@@ -543,13 +541,11 @@ function coalesceHeadStylesAndBodyScripts(html: string): string {
 }
 
 /**
- * Inline sub-composition HTML into the main document, mirroring what the
- * bundler's step 6 does.  For each host element with `data-composition-src`:
- *   - Resolve the composition HTML from the pre-compiled map or disk
- *   - Extract <template> (or <body>) content
- *   - Move composition <style> to <head>, <script> to end of <body>
- *   - Replace host innerHTML with composition children
- *   - Remove data-composition-src so the runtime skips async fetching
+ * Inline sub-composition HTML into the main document using the shared
+ * inlining logic from @hyperframes/core. This wrapper handles the
+ * producer-specific concerns: parsing HTML via linkedom, resolving
+ * compositions from the pre-compiled map or disk, and setting explicit
+ * pixel dimensions on host elements for headless rendering.
  */
 function inlineSubCompositions(
   html: string,
@@ -559,142 +555,33 @@ function inlineSubCompositions(
   const { document } = parseHTML(html);
   const head = document.querySelector("head");
   const body = document.querySelector("body");
-  const hosts = document.querySelectorAll("[data-composition-src]");
+  const hosts = Array.from(document.querySelectorAll("[data-composition-src]"));
 
   if (!hosts.length) return html;
 
-  const collectedStyles: string[] = [];
-  const collectedScripts: string[] = [];
-  const collectedExternalScriptSrcs: string[] = [];
+  const result = inlineSubCompositionsShared(
+    document as unknown as Document,
+    hosts as unknown as Element[],
+    {
+      resolveHtml: (srcPath: string) => {
+        let compHtml = subCompositions.get(srcPath) || null;
+        if (!compHtml) {
+          const filePath = resolve(projectDir, srcPath);
+          if (existsSync(filePath)) {
+            compHtml = readFileSync(filePath, "utf-8");
+          }
+        }
+        return compHtml;
+      },
+      parseHtml: (htmlStr: string) => parseHTML(htmlStr).document as unknown as Document,
+      scriptErrorLabel: "[Compiler] Composition script failed",
+    },
+  );
 
+  // Producer-specific: set explicit pixel dimensions on host elements so
+  // children using width/height: 100% resolve correctly. The runtime does
+  // this automatically but compiled HTML needs it inline.
   for (const host of hosts) {
-    const srcPath = host.getAttribute("data-composition-src");
-    if (!srcPath) continue;
-
-    let compHtml = subCompositions.get(srcPath) || null;
-    if (!compHtml) {
-      const filePath = resolve(projectDir, srcPath);
-      if (existsSync(filePath)) {
-        compHtml = readFileSync(filePath, "utf-8");
-      }
-    }
-    if (!compHtml) {
-      continue;
-    }
-
-    const compDoc = parseHTML(compHtml).document;
-    const compId = host.getAttribute("data-composition-id");
-
-    const templateEl = compDoc.querySelector("template");
-    const bodyEl = compDoc.querySelector("body");
-    const contentHtml = templateEl
-      ? templateEl.innerHTML || ""
-      : bodyEl
-        ? bodyEl.innerHTML || ""
-        : compDoc.toString();
-
-    const contentDoc = parseHTML(contentHtml).document;
-
-    const innerRoot = compId
-      ? contentDoc.querySelector(`[data-composition-id="${compId}"]`)
-      : contentDoc.querySelector("[data-composition-id]");
-    const inferredCompId = innerRoot?.getAttribute("data-composition-id")?.trim() || null;
-
-    // When a sub-composition is a full HTML document (no <template>), styles
-    // and scripts in <head> are not part of contentDoc (which only has body
-    // content). Extract them separately so backgrounds, positioning, fonts,
-    // and library scripts (e.g. GSAP CDN) are not silently dropped.
-    if (!templateEl) {
-      const compHead = compDoc.querySelector("head");
-      if (compHead) {
-        for (const styleEl of compHead.querySelectorAll("style")) {
-          const css = rewriteCssAssetUrls(styleEl.textContent || "", srcPath);
-          const scopeId = compId || inferredCompId;
-          if (scopeId && css.trim()) {
-            collectedStyles.push(scopeCssToComposition(css, scopeId));
-          } else {
-            collectedStyles.push(css);
-          }
-        }
-        for (const scriptEl of compHead.querySelectorAll("script")) {
-          const src = (scriptEl.getAttribute("src") || "").trim();
-          if (src && !collectedExternalScriptSrcs.includes(src)) {
-            collectedExternalScriptSrcs.push(src);
-          }
-        }
-      }
-    }
-
-    for (const styleEl of contentDoc.querySelectorAll("style")) {
-      const css = rewriteCssAssetUrls(styleEl.textContent || "", srcPath);
-      const scopeId = compId || inferredCompId;
-      if (scopeId && css.trim()) {
-        // Scope sub-composition styles to their composition ID to prevent
-        // CSS class collisions when multiple compositions use the same
-        // class names (e.g. ".content"). This matches preview behavior
-        // where each composition's styles are naturally scoped.
-        collectedStyles.push(scopeCssToComposition(css, scopeId));
-      } else {
-        collectedStyles.push(css);
-      }
-      styleEl.remove();
-    }
-
-    for (const scriptEl of contentDoc.querySelectorAll("script")) {
-      const src = (scriptEl.getAttribute("src") || "").trim();
-      if (src) {
-        // External CDN/remote script — collect for deduped injection into the
-        // parent document, mirroring the bundler's hoisting behavior.
-        if (!collectedExternalScriptSrcs.includes(src)) {
-          collectedExternalScriptSrcs.push(src);
-        }
-        scriptEl.remove();
-        continue;
-      }
-      const content = (scriptEl.textContent || "").trim();
-      if (content) {
-        const scriptMountCompId = compId || inferredCompId || "";
-        collectedScripts.push(
-          scriptMountCompId
-            ? wrapScopedCompositionScript(
-                content,
-                scriptMountCompId,
-                "[Compiler] Composition script failed",
-              )
-            : `(function(){ try { ${content} } catch (_err) { console.error("[Compiler] Composition script failed", _err); } })()`,
-        );
-      }
-      scriptEl.remove();
-    }
-
-    // Rewrite relative asset paths before inlining so ../foo.svg from
-    // compositions/ resolves correctly when the content moves to root.
-    const rewriteTarget = innerRoot || contentDoc;
-    rewriteAssetPaths(
-      rewriteTarget.querySelectorAll("[src], [href]"),
-      srcPath,
-      (el, attr) => (el.getAttribute(attr) || "").trim(),
-      (el, attr, val) => el.setAttribute(attr, val),
-    );
-
-    if (innerRoot) {
-      const innerW = innerRoot.getAttribute("data-width");
-      const innerH = innerRoot.getAttribute("data-height");
-      if (innerW && !host.getAttribute("data-width")) host.setAttribute("data-width", innerW);
-      if (innerH && !host.getAttribute("data-height")) host.setAttribute("data-height", innerH);
-      innerRoot.querySelectorAll("style, script").forEach((el) => el.remove());
-      host.innerHTML = compId ? innerRoot.innerHTML || "" : innerRoot.outerHTML || "";
-    } else {
-      contentDoc.querySelectorAll("style, script").forEach((el) => el.remove());
-      host.innerHTML = contentDoc.toString();
-    }
-
-    host.setAttribute("data-composition-file", srcPath);
-    host.removeAttribute("data-composition-src");
-
-    // Set explicit pixel dimensions on the host element so children using
-    // width/height: 100% resolve correctly. The runtime does this
-    // automatically but compiled HTML needs it inline.
     const hostW = host.getAttribute("data-width");
     const hostH = host.getAttribute("data-height");
     if (hostW && hostH) {
@@ -713,22 +600,23 @@ function inlineSubCompositions(
     }
   }
 
-  if (collectedStyles.length && head) {
+  // Append collected styles to <head>
+  if (result.styles.length && head) {
     const styleEl = document.createElement("style");
-    styleEl.textContent = collectedStyles.join("\n\n");
+    styleEl.textContent = result.styles.join("\n\n");
     head.appendChild(styleEl);
   }
 
   // Inject external CDN scripts before inline scripts so plugins (e.g.
   // TextPlugin, ScrollTrigger) are registered before composition code runs.
   // Deduplicate against scripts already present in the document.
-  if (collectedExternalScriptSrcs.length && body) {
+  if (result.externalScriptSrcs.length && body) {
     const existingScriptSrcs = new Set(
-      Array.from(document.querySelectorAll("script[src]")).map((el) =>
+      Array.from(document.querySelectorAll("script[src]")).map((el: Element) =>
         (el.getAttribute("src") || "").trim(),
       ),
     );
-    for (const src of collectedExternalScriptSrcs) {
+    for (const src of result.externalScriptSrcs) {
       if (!existingScriptSrcs.has(src)) {
         const scriptEl = document.createElement("script");
         scriptEl.setAttribute("src", src);
@@ -738,9 +626,10 @@ function inlineSubCompositions(
     }
   }
 
-  if (collectedScripts.length && body) {
+  // Append collected inline scripts to <body>
+  if (result.scripts.length && body) {
     const scriptEl = document.createElement("script");
-    scriptEl.textContent = collectedScripts.join("\n;\n");
+    scriptEl.textContent = result.scripts.join("\n;\n");
     body.appendChild(scriptEl);
   }
 
