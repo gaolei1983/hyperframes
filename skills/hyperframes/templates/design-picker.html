@@ -1571,8 +1571,12 @@
         });
         document.getElementById("phase-" + name).classList.add("active");
         document.getElementById("tab-" + name).classList.add("active");
-        if (name === "mood") document.getElementById("fab").classList.remove("visible");
-        else {
+        if (name === "mood") {
+          document.getElementById("fab").classList.remove("visible");
+          // Hide design iframe when going back to templates
+          var dif = document.getElementById("design-iframe");
+          if (dif) dif.style.display = "none";
+        } else {
           checkReady();
           if (typeof window._redrawBezier === "function") window._redrawBezier();
         }
