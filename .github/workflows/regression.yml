@@ -50,7 +50,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     strategy:
-      fail-fast: true
+      # Temporarily disabled for the regression-flake investigation on
+      # chore/regression-poll-observability — we need every shard to emit
+      # its pollSubCompositionTimelines log even when an early shard fails.
+      # Restore to `true` before merging this PR (or before reverting it).
+      fail-fast: false
       matrix:
         # Shards are bin-packed by measured per-test duration (LPT heuristic on
         # CI run 25893372795) so each row carries ~15-16 min of work. When a
