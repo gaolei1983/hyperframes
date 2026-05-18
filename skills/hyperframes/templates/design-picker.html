@@ -2669,7 +2669,11 @@
         // Template CSS + slide cards from summary
         if (summary) {
           var styleMatch = summary.match(/<style[\s\S]*?<\/style>/);
+          // Extract font links before stripping
+          var fontLinks = summary.match(/<link[^>]*fonts\.googleapis[^>]*>/g) || [];
           var skeletonHtml = summary.replace(/<style[\s\S]*?<\/style>/, "").replace(/<link[^>]*>/g, "").trim();
+          // Inject template font links into design page head
+          if (fontLinks.length) h = h.replace('</head>', fontLinks.join('\n') + '\n</head>');
           if (styleMatch) {
             var tmplCss = styleMatch[0].replace(/<\/?style[^>]*>/g, "");
             tmplCss = tmplCss.replace(/--tp-primary:\s*[^;]+;/g, "--tp-primary: var(--primary);");
