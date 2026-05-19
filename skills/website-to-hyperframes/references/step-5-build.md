@@ -260,7 +260,23 @@ The Studio preview server rewrites base URLs to the project root — `../` paths
 
 ## 3. Build each composition — USE SUB-AGENTS
 
-**Before dispatching, re-read DESIGN.md and STORYBOARD.md.** You wrote these files earlier in the session and you think you remember them. You don't — not the exact hex values, not the specific font families, not the button border-radius, not the Do's/Don'ts. Re-read them now so you can paste accurate brand rules and beat specs into each sub-agent prompt.
+**Before dispatching: copy the closest example scene into `compositions/` as the starting point for each beat.** The storyboard's technique-pick checklist (step-3) cited specific scene paths per beat. Do not write any beat from scratch — there is always a closer example in [`examples/`](../examples/). Copy `<example-scene>/index.html` to `compositions/beat-N-name.html`, then the sub-agent mutates it.
+
+Quick mapping:
+- "Show a kanban / project board" → start from `examples/04-composed-ui/scene-01-kanban-board/index.html`
+- "Show chat / messaging" → start from `examples/04-composed-ui/scene-02-chat-with-typing/index.html`
+- "Show terminal / CLI / command" → start from `examples/04-composed-ui/scene-03-terminal-typeon/index.html`
+- "Show command palette / Cmd+K" → start from `examples/04-composed-ui/scene-04-command-palette/index.html`
+- "Show stats / dashboard / numbers" → start from `examples/04-composed-ui/scene-05-dashboard-counters/index.html`
+- "Show files / folder tree" → start from `examples/04-composed-ui/scene-06-file-tree-reveal/index.html`
+- "Show code editor" → start from `examples/04-composed-ui/scene-07-code-editor-typing/index.html`
+- "Show calendar / schedule" → start from `examples/04-composed-ui/scene-08-calendar-events/index.html`
+- Hero text reveal → start from `examples/01-typography/scene-01-soft-blur-in/index.html` (or pick another text effect)
+- Terminal-typed headline → start from `examples/01-typography/scene-02-typewriter-mechanical/index.html`
+
+**The non-negotiable rule:** if a beat's primary visual is a UI element that exists in `examples/04-composed-ui/`, that beat is built by copying the matching scene. Not by screenshotting a captured asset.
+
+**Before dispatching, also re-read DESIGN.md and STORYBOARD.md.** You wrote these files earlier in the session and you think you remember them. You don't — not the exact hex values, not the specific font families, not the button border-radius, not the Do's/Don'ts. Re-read them now so you can paste accurate brand rules and beat specs into each sub-agent prompt.
 
 **If your runtime supports parallel sub-agents** (Claude Code, Cursor, most agent frameworks): dispatch one sub-agent per beat — 3 to 4× faster than building sequentially. For 3+ beats, always dispatch in parallel. For 1–2 beats, sequential is fine.
 

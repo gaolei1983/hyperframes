@@ -40,6 +40,26 @@ Users say things like:
 
 ---
 
+## Step -1: Study the Example Library (REQUIRED before Step 0)
+
+**Read:** [examples/README.md](examples/README.md) — the HyperFrames Capability Showcase. Production-grade scenes for every technique HyperFrames can do, each composed 100% from divs/SVG/HTML/CSS/GSAP — zero captured screenshots, zero slideshow shortcuts.
+
+**Why this comes first:** every prior round of pipeline iteration showed agents defaulting to "screenshot + Ken Burns + voiceover" regardless of what the prompt asked for. Zero of eleven isolated component-eval runs used HTML-in-canvas, SVG path drawing, counter animations, kinetic typography, or any of HyperFrames' powerful capabilities. The skill prose has been exhausted as a lever; the lever is what you pattern-match to. These examples are that.
+
+**Mandatory:** open `examples/README.md`, then open AT LEAST 3 scene `index.html` files end-to-end before planning your storyboard. Specifically:
+
+- **One scene from `04-composed-ui/`** — pick whichever matches a UI element you'll likely show (kanban / chat / terminal / command palette / dashboard / file tree / code editor / calendar). Study the markup AND the GSAP timeline.
+- **One scene from `01-typography/`** — pick whichever matches your headline style (soft-blur-in / typewriter / kinetic-center-build / mask-reveal-up / variable-font / glitch-rgb-split / scramble-decrypt / per-word-emphasis).
+- **The "bar" scenes**: [`04-composed-ui/scene-01-kanban-board/index.html`](examples/04-composed-ui/scene-01-kanban-board/index.html) and [`04-composed-ui/scene-02-chat-with-typing/index.html`](examples/04-composed-ui/scene-02-chat-with-typing/index.html) — these set the quality bar for every other scene and demonstrate the narration-sync pattern.
+
+After reading: you should be able to answer "for each beat I'm planning, which example scene am I going to copy as the starting point?"
+
+**The non-negotiable rule:** if the user's prompt would lead you to use a product screenshot of an interface (kanban, chat, dashboard, etc.) as the primary visual of any beat — STOP. Open the matching scene in `examples/04-composed-ui/` and BUILD that UI from divs instead. The library exists to make this the path of least resistance.
+
+**Gate:** you've read `examples/README.md` plus at least 3 scene HTMLs and named which scenes you'll use as starting points for which beats. Don't proceed to Step 0 until this is done.
+
+---
+
 ## Step 0: Capture
 
 **Read:** [references/step-0-capture.md](references/step-0-capture.md)

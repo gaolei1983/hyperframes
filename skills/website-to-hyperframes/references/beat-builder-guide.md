@@ -4,11 +4,18 @@ You are building ONE beat of a multi-beat video composition. This file tells you
 
 ## Step 1: Read and understand
 
-**Required (every beat):**
+**Required for EVERY beat, in this order:**
 
-1. **Load the `hyperframes` skill** — composition rules, data attributes, timeline contract, deterministic rendering. Read the whole skill.
-2. **[capabilities.md](capabilities.md)** — full inventory of HyperFrames capabilities (24 sections). Read the Table of Contents first, then deep-dive sections your beat needs.
-3. **The beat spec** the main agent gave you — concept, choreography, assets, brand values, timing.
+1. **The matching example scene from [`examples/`](../examples/)** — the beat spec tells you which one (e.g. `examples/04-composed-ui/scene-01-kanban-board/index.html`). **Read its full source end-to-end** — markup, CSS, GSAP timeline, comments. Then COPY its `index.html` into your `compositions/beat-N-name.html` and mutate it to your beat's content. **Do not write from scratch — there is always a closer example.** If the beat spec didn't cite a scene, escalate back to the main agent: the storyboard is incomplete.
+2. **Load the `hyperframes` skill** — composition rules, data attributes, timeline contract, deterministic rendering. Read the whole skill.
+3. **[capabilities.md](capabilities.md)** — full inventory of HyperFrames capabilities (24 sections). Read the Table of Contents first, then deep-dive sections your beat needs.
+4. **The beat spec** the main agent gave you — concept, choreography, assets, brand values, timing.
+
+**Why the example scene comes first:** every prior eval round showed sub-agents writing from-scratch compositions that defaulted to "static screenshot + Ken Burns + fade-in headline." The example scenes are calibrated to demonstrate the techniques that work. Copy first, mutate second.
+
+**Pattern-match the timeline, replace the content.** What you keep from the example scene: the markup scaffold, the CSS structure, the GSAP timeline shape, the easing variety, the continuous-motion sub-tweens during holds, the per-frame snapshot determinism (pre-built DOM + CSS-locked initial state). What you mutate: the words, the brand colors (pull from DESIGN.md), the specific element content (your beat's data, not the example's), the duration if the beat is longer/shorter than the example.
+
+**If your beat has narration**, also study [`examples/04-composed-ui/scene-02-chat-with-typing/index.html`](../examples/04-composed-ui/scene-02-chat-with-typing/index.html) — it's the canonical narration-sync pattern. Every meaningful narration phrase from `transcript.json` should land at a timeline event at the same timestamp.
 
 **Read based on what your beat needs (pick relevant ones):**
 

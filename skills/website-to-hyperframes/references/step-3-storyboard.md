@@ -19,6 +19,28 @@ If the user said "dark cinematic feel" — that's SLOW, not fast. If they said "
 
 ---
 
+## Technique-pick checklist (REQUIRED, do this BEFORE writing beat copy)
+
+For every beat you plan, name 2–4 techniques it will use AND cite the matching scene in [`examples/`](../examples/). Without this, you'll default to the same slideshow that every prior eval run produced.
+
+Format (one line per beat):
+
+```
+Beat 3: kanban-board (examples/04-composed-ui/scene-01-kanban-board/) +
+        counter on the In-Progress chip (examples/04-composed-ui/scene-05-dashboard-counters/) +
+        back.out for the entrance staggered (examples/_shared/easing-glossary.md)
+```
+
+If a beat lists fewer than 2 cited techniques, **redesign that beat.** A beat with one technique is a slideshow frame.
+
+If a technique you want isn't in [`examples/`](../examples/), either:
+1. Pick a library technique that's close enough (preferred), or
+2. Note explicitly in the beat spec why you're inventing one — and what you'll build it from (which existing scene you'll start from + what you'll change).
+
+**Forbidden:** "show the kanban" as a beat description with no technique citation. The library exists so you don't have to think from scratch — open the closest scene, copy it into your `compositions/`, mutate the content.
+
+---
+
 **Before writing beats, answer this in one sentence:**
 
 > "What makes this video different from a generic [video type] for any [industry] brand?"
