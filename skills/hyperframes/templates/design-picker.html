@@ -2249,6 +2249,7 @@
           "</div></div>";
         el.onclick = function () {
           chipSel("corners", i, cornerOpts);
+          tpScrollToSurface();
         };
         cornerOpts.appendChild(el);
       });
@@ -2269,6 +2270,7 @@
           "</div></div>";
         el.onclick = function () {
           chipSel("density", i, densityOpts);
+          tpScrollToSurface();
         };
         densityOpts.appendChild(el);
       });
@@ -2293,6 +2295,7 @@
           "</div></div>";
         el.onclick = function () {
           chipSel("depth", i, depthOpts);
+          tpScrollToSurface();
         };
         depthOpts.appendChild(el);
       });
@@ -3038,8 +3041,10 @@
         renderLabel.textContent = "Rendering";
         seControls.appendChild(renderLabel);
 
-        if (!preset._render)
-          preset._render = {
+        // Render + grain config persists across shader changes (single global object,
+        // not per-preset). Switching shaders keeps user-tuned brightness/grain values.
+        if (!window._sgRender)
+          window._sgRender = {
             brightness: 1.0,
             contrast: 1.0,
             saturation: 1.0,
@@ -3047,6 +3052,7 @@
             grainScatter: 1,
             grainBlending: 1,
           };
+        preset._render = window._sgRender;
         makeSlider(seControls, "Brightness", "brightness", 0.2, 2.0, 0.05, preset._render);
         makeSlider(seControls, "Contrast", "contrast", 0.5, 2.0, 0.05, preset._render);
         makeSlider(seControls, "Saturation", "saturation", 0.0, 2.0, 0.05, preset._render);
@@ -3071,19 +3077,24 @@
           p.desc +
           "</div></div>";
         el.onclick = function () {
-          sel("bg_mode", i, bgOpts);
+          // Render controls FIRST so preset._render points to window._sgRender
+          // before sel triggers renderPreview (which reads preset._render).
           shaderEditor.style.display = i > 0 ? "block" : "none";
           renderBgControls(i > 0 ? p : null);
           window._lastBgModeKey = null;
+          sel("bg_mode", i, bgOpts);
           if (typeof window._sgUpdateBg === "function") window._sgUpdateBg();
         };
         bgOpts.appendChild(el);
       });
 
       function getBgColors() {
-        if (seUsePal.checked && picks.palette !== null) {
-          var p = PALETTES[picks.palette];
-          return [p.secondary, p.accent, p.tertiary];
+        // Template Default (picks.palette === null) falls back to PALETTES[0]
+        // which holds the active template's native colors. Otherwise use the picked palette.
+        if (seUsePal.checked) {
+          var pi = picks.palette !== null ? picks.palette : 0;
+          var p = PALETTES[pi];
+          if (p) return [p.secondary, p.accent, p.tertiary];
         }
         return [seC1.value, seC2.value, seC3.value];
       }
@@ -3222,20 +3233,18 @@
         sel(key, idx, container, ".chip");
       }
 
+      function tpScrollToSurface() {
+        setTimeout(function () {
+          var ifr = document.getElementById("design-iframe");
+          if (!ifr || !ifr.contentDocument) return;
+          var s = ifr.contentDocument.getElementById("surface");
+          if (s && s.scrollIntoView) s.scrollIntoView({ behavior: "smooth", block: "start" });
+        }, 80);
+      }
+
       function checkReady() {
-        var ready =
-          picks.theme !== null &&
-          picks.arch !== null &&
-          picks.palette !== null &&
-          picks.type !== null &&
-          picks.corners !== null &&
-          picks.density !== null &&
-          picks.depth !== null &&
-          picks.easing !== null &&
-          picks.bg_mode !== null;
-        document
-          .getElementById("fab")
-          .classList.toggle("visible", ready && currentPhase === "tune");
+        // Button always visible in tune phase — Template Default values fill in any unselected configs.
+        document.getElementById("fab").classList.toggle("visible", currentPhase === "tune");
         document.getElementById("md-overlay").classList.remove("visible");
       }
 
@@ -4001,8 +4010,19 @@
           p.accent +
           "!important}" +
           "html,body{overflow-y:auto!important}" +
+          // Force surface/motion example cards to reflect corners/density/depth — only when user picks (preserves template defaults otherwise)
+          (picks.corners !== null
+            ? ".demo-card,.panel,.tokens,.specimen,.bg-preview,.tmpl,.tmpl-thumb,details.code-block,.swatch,.rules-col,.rules-col li,.cover-foot .cell{border-radius:" + cr.value + "!important}"
+            : "") +
+          (picks.density !== null
+            ? ".demo-card,.panel{padding:" + (dn.padding || "20px") + "!important;gap:" + (dn.gap || "16px") + "!important}" +
+              ".tokens li{padding-left:" + (dn.padding || "20px") + "!important;padding-right:" + (dn.padding || "20px") + "!important}"
+            : "") +
+          (picks.depth !== null
+            ? ".demo-card,.panel,.tokens,.tmpl{box-shadow:" + (dp.css || "none") + "!important}"
+            : "") +
           (bg && bg.type
-            ? "html,body{background:transparent!important}.cover{background:transparent!important}#bg-veil{opacity:.4!important}"
+            ? "html,body{background:transparent!important}.cover{background:transparent!important}#bg-veil{display:none!important}#design-bg{opacity:1!important}section{background:transparent!important}"
             : "") +
           "</style>";
         h = h.replace("</head>", overrideCSS + "</head>");
@@ -4112,7 +4132,10 @@
         }
         if (heroAnim) h = h.replace('</body>', heroAnim + '\n</body>');
 
-        // Use blob URL for smooth transition
+        // Use blob URL for smooth transition. Reset _lastBgModeKey so the next
+        // renderPreview cycle treats the freshly-reloaded iframe as a new shader
+        // mount — forces uColor uniforms to re-bake from the current palette.
+        window._lastBgModeKey = null;
         if (iframe._blobUrl) URL.revokeObjectURL(iframe._blobUrl);
         var blob = new Blob([h], { type: "text/html" });
         iframe._blobUrl = URL.createObjectURL(blob);
@@ -6237,17 +6260,14 @@
         window._lastHeroEasing = null; // force animation on next render
         selectedMood = 0;
         goToTune();
-        // Mark default option (first) as active in each config group so user sees
-        // which option is currently in effect. Visual-only — picks stay null.
+        // Mark default option (first) as active for palette + type — those fall back
+        // to PALETTES[0]/TYPEPAIRS[0] when picks is null. Corners/density/depth/ease/bg
+        // use the template's native values when null (no picker option in effect), so
+        // no marker shown for those.
         setTimeout(function () {
           [
             ["pal-options", ".opt"],
             ["type-options", ".opt"],
-            ["corner-options", ".chip"],
-            ["density-options", ".chip"],
-            ["depth-options", ".chip"],
-            ["ease-options", ".ease-opt"],
-            ["bg-options", ".opt"],
           ].forEach(function (pair) {
             var c = document.getElementById(pair[0]);
             if (!c) return;
@@ -6257,11 +6277,28 @@
             var first = c.querySelector(pair[1]);
             if (first) first.classList.add("selected");
           });
+          ["corner-options", "density-options", "depth-options", "ease-options", "bg-options"].forEach(function (id) {
+            var c = document.getElementById(id);
+            if (!c) return;
+            c.querySelectorAll(".chip,.opt,.ease-opt").forEach(function (el) {
+              el.classList.remove("selected");
+            });
+          });
         }, 0);
-        // Scroll sidebar to top after goToTune rebuilds content
+        // Scroll sidebar + preview iframe to top after goToTune rebuilds content
         setTimeout(function() {
           var panelLeft = document.querySelector(".panel-left");
           if (panelLeft) panelLeft.scrollTop = 0;
+          var dif = document.getElementById("design-iframe");
+          if (dif && dif.contentWindow) {
+            try { dif.contentWindow.scrollTo(0, 0); } catch (e) {}
+          }
+          // Also retry once iframe finishes rendering new template
+          setTimeout(function () {
+            if (dif && dif.contentWindow) {
+              try { dif.contentWindow.scrollTo(0, 0); } catch (e) {}
+            }
+          }, 300);
         }, 0);
         if (pick.slug) {
           var grid = document.getElementById("sc-scene-grid");
