@@ -48,31 +48,48 @@ Need a specific technique? Use this table to find the canonical scene.
 
 | Technique | Canonical scene |
 |---|---|
-| Headline blur entrance | `01-typography/scene-01-soft-blur-in.html` |
-| Terminal-style typewriter | `01-typography/scene-02-typewriter-mechanical.html` |
-| Per-word kinetic build | `01-typography/scene-03-kinetic-center-build.html` |
-| Highlight bar sweep | `02-markers-and-emphasis/scene-01-highlight-sweep.html` |
-| Hand-drawn circle around word | `02-markers-and-emphasis/scene-02-hand-drawn-circle.html` |
-| 7-easing side-by-side comparison | `03-easing-variety/scene-08-all-easings-grid.html` |
-| Animated kanban with drag | `04-composed-ui/scene-01-kanban-board.html` |
-| Chat with typing dots + reaction | `04-composed-ui/scene-02-chat-with-typing.html` |
-| Terminal with type-on text | `04-composed-ui/scene-03-terminal-typeon.html` |
-| Command palette filtering | `04-composed-ui/scene-04-command-palette.html` |
-| Dashboard with counters + sparklines | `04-composed-ui/scene-05-dashboard-counters.html` |
-| WebGL shader transition between beats | `05-transitions-shader/scene-NN-<name>.html` (14 options) |
-| CSS push/scale/blur transitions | `06-transitions-css/scene-NN-<name>.html` (10 options) |
-| iPhone mockup with live screen | `07-html-in-canvas/scene-01-iphone-mockup.html` |
-| MacBook mockup with live screen | `07-html-in-canvas/scene-02-macbook-mockup.html` |
-| 3D rotation + bloom VFX | `07-html-in-canvas/scene-03-3d-rotation-bloom.html` |
-| Logo stroke-draw entrance | `08-svg-and-path/scene-01-logo-stroke-draw.html` |
-| MotionPath orbit/follow | `08-svg-and-path/scene-03-motion-path.html` |
-| Animated build of a timeline / easing curve diagram | `09-counters-and-data/scene-01-timeline-diagram/` |
-| Scroll-pan pipeline / flow connector diagram | `09-counters-and-data/scene-02-pipeline-diagram/` |
-| Radial bloom / dot grid stagger from center | `10-particles-and-ambient/scene-01-radial-bloom-grid/` |
-| Aurora end-card / radial gradient + particles + tri-color text gradient | `10-particles-and-ambient/scene-02-aurora-end-card/` |
-| CSS 3D flip card | `11-3d-and-parallax/scene-01-3d-flip-card.html` |
-| Parallax depth layers | `11-3d-and-parallax/scene-03-parallax-layers.html` |
-| Three.js rotating geometry | `11-3d-and-parallax/scene-05-three-js-geometry.html` |
+| 4-shader transitions side-by-side (chromatic-split, sdf-iris, domain-warp, whip-pan) | [`05-transitions-shader/scene-01-shader-transitions-showcase/`](05-transitions-shader/scene-01-shader-transitions-showcase/) |
+| 6 CSS transitions side-by-side (push, scale, blur-dissolve, 3D flip, light leak, dissolve) | [`06-transitions-css/scene-01-css-transitions-grid/`](06-transitions-css/scene-01-css-transitions-grid/) |
+| Headline blur entrance (Apple keynote) | [`01-typography/scene-01-soft-blur-in/`](01-typography/scene-01-soft-blur-in/) |
+| Terminal-style typewriter | [`01-typography/scene-02-typewriter-mechanical/`](01-typography/scene-02-typewriter-mechanical/) |
+| Per-word kinetic build (word locks center) | [`01-typography/scene-03-kinetic-center-build/`](01-typography/scene-03-kinetic-center-build/) |
+| Per-line mask-reveal-up (editorial Fraunces italic) | [`01-typography/scene-04-line-reveal-staggered/`](01-typography/scene-04-line-reveal-staggered/) |
+| Stagger wave (center-out vs edges-in comparison) | [`01-typography/scene-05-stagger-wave/`](01-typography/scene-05-stagger-wave/) |
+| Variable-font weight shift (wght 100→900) | [`01-typography/scene-06-variable-font-weight-shift/`](01-typography/scene-06-variable-font-weight-shift/) |
+| Material shared-axis-z depth crossfade | [`01-typography/scene-07-shared-axis-crossfade/`](01-typography/scene-07-shared-axis-crossfade/) |
+| RGB glitch split (cyberpunk emphasis) | [`01-typography/scene-08-glitch-rgb-split/`](01-typography/scene-08-glitch-rgb-split/) |
+| Scramble decrypt (per-char intermediates) | [`01-typography/scene-09-scramble-decrypt/`](01-typography/scene-09-scramble-decrypt/) |
+| Per-word + hand-drawn marker overlay | [`01-typography/scene-10-per-word-emphasis/`](01-typography/scene-10-per-word-emphasis/) |
+| Serif orbital title with SVG accent + tagline | [`01-typography/scene-11-orbital-title/`](01-typography/scene-11-orbital-title/) |
+| Yellow highlight sweep behind key word | [`02-markers-and-emphasis/scene-01-highlight-sweep/`](02-markers-and-emphasis/scene-01-highlight-sweep/) |
+| Hand-drawn SVG ellipse circle around word | [`02-markers-and-emphasis/scene-02-hand-drawn-circle/`](02-markers-and-emphasis/scene-02-hand-drawn-circle/) |
+| 12-spike radial burst on key word | [`02-markers-and-emphasis/scene-03-burst-radial/`](02-markers-and-emphasis/scene-03-burst-radial/) |
+| Wavy scribble underline | [`02-markers-and-emphasis/scene-04-scribble-underline/`](02-markers-and-emphasis/scene-04-scribble-underline/) |
+| Sketchout X (with replacement phrase) | [`02-markers-and-emphasis/scene-05-sketchout-x/`](02-markers-and-emphasis/scene-05-sketchout-x/) |
+| All 5 markers in cascade | [`02-markers-and-emphasis/scene-06-combined-marker-cascade/`](02-markers-and-emphasis/scene-06-combined-marker-cascade/) |
+| 6x3 grid of pure-CSS animations | [`03-easing-variety/scene-01-css-animation-grid/`](03-easing-variety/scene-01-css-animation-grid/) |
+| Animated kanban board with drag | [`04-composed-ui/scene-01-kanban-board/`](04-composed-ui/scene-01-kanban-board/) |
+| Chat with typing dots + reactions (narration-sync gold standard) | [`04-composed-ui/scene-02-chat-with-typing/`](04-composed-ui/scene-02-chat-with-typing/) |
+| Terminal with multi-line command + output | [`04-composed-ui/scene-03-terminal-typeon/`](04-composed-ui/scene-03-terminal-typeon/) |
+| Cmd+K command palette with filtering | [`04-composed-ui/scene-04-command-palette/`](04-composed-ui/scene-04-command-palette/) |
+| Dashboard with counters + sparklines + donut + gauge | [`04-composed-ui/scene-05-dashboard-counters/`](04-composed-ui/scene-05-dashboard-counters/) |
+| VS Code file tree progressive reveal | [`04-composed-ui/scene-06-file-tree-reveal/`](04-composed-ui/scene-06-file-tree-reveal/) |
+| Code editor typing with syntax + error squiggle + fix | [`04-composed-ui/scene-07-code-editor-typing/`](04-composed-ui/scene-07-code-editor-typing/) |
+| Weekly calendar with events + popover + now-line | [`04-composed-ui/scene-08-calendar-events/`](04-composed-ui/scene-08-calendar-events/) |
+| 3D iPhone mockups with composed app UI | [`04-composed-ui/scene-09-phone-mockups/`](04-composed-ui/scene-09-phone-mockups/) |
+| WebGL fragment shader + Canvas 2D fallback | [`07-html-in-canvas/scene-01-webgl-shader/`](07-html-in-canvas/scene-01-webgl-shader/) |
+| Canvas 2D procedural ASCII art + lightning | [`07-html-in-canvas/scene-02-canvas-ascii/`](07-html-in-canvas/scene-02-canvas-ascii/) |
+| SVG vinyl record + tonearm | [`08-svg-and-path/scene-01-vinyl-record/`](08-svg-and-path/scene-01-vinyl-record/) |
+| Editorial timeline diagram + SVG easing curve | [`09-counters-and-data/scene-01-timeline-diagram/`](09-counters-and-data/scene-01-timeline-diagram/) |
+| Vertical scroll-pan pipeline diagram | [`09-counters-and-data/scene-02-pipeline-diagram/`](09-counters-and-data/scene-02-pipeline-diagram/) |
+| Radial bloom dot grid (stagger from center) | [`10-particles-and-ambient/scene-01-radial-bloom-grid/`](10-particles-and-ambient/scene-01-radial-bloom-grid/) |
+| Aurora end-card + particles + tri-color text gradient | [`10-particles-and-ambient/scene-02-aurora-end-card/`](10-particles-and-ambient/scene-02-aurora-end-card/) |
+| CSS 3D torus (16-segment orbital ring) | [`11-3d-and-parallax/scene-01-css-3d-torus/`](11-3d-and-parallax/scene-01-css-3d-torus/) |
+| 24-cell technique showcase grid | [`12-combined-vignettes/scene-01-techniques-grid/`](12-combined-vignettes/scene-01-techniques-grid/) |
+| BAD EXAMPLE: slideshow trap | [`13-anti-patterns/scene-01-slideshow-trap/`](13-anti-patterns/scene-01-slideshow-trap/) |
+| BAD EXAMPLE: static after entrance | [`13-anti-patterns/scene-02-static-after-entrance/`](13-anti-patterns/scene-02-static-after-entrance/) |
+| BAD EXAMPLE: power2.out everywhere | [`13-anti-patterns/scene-03-power2-everywhere/`](13-anti-patterns/scene-03-power2-everywhere/) |
+| BAD EXAMPLE: screenshot + Ken Burns | [`13-anti-patterns/scene-04-screenshot-ken-burns/`](13-anti-patterns/scene-04-screenshot-ken-burns/) |
 
 ---
 

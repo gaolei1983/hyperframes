@@ -1,0 +1,890 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>scene-01-shader-transitions-showcase</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@500;700&display=swap"
+      rel="stylesheet"
+    />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { background: #050505; }
+
+      #scene-01-shader-transitions-showcase {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #050505;
+        color: #f5f5f7;
+        font-family: "Space Grotesk", "Inter", sans-serif;
+      }
+
+      /* Vignette + frame chrome */
+      #scene-01-shader-transitions-showcase .vignette {
+        position: absolute;
+        inset: 0;
+        background: radial-gradient(ellipse at center, rgba(0,0,0,0) 40%, rgba(0,0,0,0.55) 100%);
+        pointer-events: none;
+        z-index: 60;
+      }
+
+      /* Title bar */
+      #scene-01-shader-transitions-showcase .title-bar {
+        position: absolute;
+        top: 48px;
+        left: 0;
+        right: 0;
+        text-align: center;
+        z-index: 50;
+      }
+      #scene-01-shader-transitions-showcase .title-eyebrow {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 13px;
+        letter-spacing: 0.28em;
+        color: rgba(245,245,247,0.45);
+        text-transform: uppercase;
+        margin-bottom: 10px;
+      }
+      #scene-01-shader-transitions-showcase .title-eyebrow .accent {
+        color: #f59e0b;
+      }
+      #scene-01-shader-transitions-showcase .title {
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 700;
+        font-size: 38px;
+        letter-spacing: -0.02em;
+        color: #f5f5f7;
+      }
+      #scene-01-shader-transitions-showcase .title .glow {
+        background: linear-gradient(90deg, #22d3ee 0%, #8b5cf6 60%, #ec4899 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        color: transparent;
+      }
+
+      /* 2x2 grid of panels */
+      #scene-01-shader-transitions-showcase .grid {
+        position: absolute;
+        top: 160px;
+        left: 100px;
+        right: 100px;
+        bottom: 140px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-rows: 1fr 1fr;
+        gap: 32px;
+      }
+
+      #scene-01-shader-transitions-showcase .panel {
+        position: relative;
+        border-radius: 10px;
+        overflow: hidden;
+        background: #08080c;
+        border: 1px solid rgba(255,255,255,0.06);
+        box-shadow: 0 0 50px rgba(0,0,0,0.5);
+      }
+
+      #scene-01-shader-transitions-showcase .panel-canvas {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+
+      /* Numbered badge top-left */
+      #scene-01-shader-transitions-showcase .panel-badge {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        z-index: 4;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.18em;
+        color: #f5f5f7;
+        background: rgba(10,10,14,0.7);
+        border: 1px solid rgba(255,255,255,0.12);
+        padding: 6px 10px;
+        border-radius: 4px;
+        text-transform: uppercase;
+      }
+
+      /* Shader-name label bottom-left */
+      #scene-01-shader-transitions-showcase .panel-label {
+        position: absolute;
+        bottom: 16px;
+        left: 16px;
+        right: 16px;
+        z-index: 4;
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 12px;
+      }
+      #scene-01-shader-transitions-showcase .panel-name {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 16px;
+        font-weight: 500;
+        letter-spacing: 0.04em;
+        color: #f5f5f7;
+        text-shadow: 0 0 12px rgba(0,0,0,0.7);
+      }
+      #scene-01-shader-transitions-showcase .panel-name .accent { color: #f59e0b; }
+      #scene-01-shader-transitions-showcase .panel-progress-meta {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        color: rgba(245,245,247,0.55);
+        text-transform: uppercase;
+      }
+
+      /* Progress bar across bottom of panel */
+      #scene-01-shader-transitions-showcase .panel-progress {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        height: 3px;
+        width: 100%;
+        background: rgba(255,255,255,0.05);
+        z-index: 4;
+        overflow: hidden;
+      }
+      #scene-01-shader-transitions-showcase .panel-progress-fill {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 100%;
+        transform-origin: left center;
+        transform: scaleX(0);
+        background: linear-gradient(90deg, #22d3ee, #ec4899);
+      }
+
+      /* AB chips top right */
+      #scene-01-shader-transitions-showcase .panel-chips {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        z-index: 4;
+        display: flex;
+        gap: 6px;
+      }
+      #scene-01-shader-transitions-showcase .chip {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        padding: 4px 8px;
+        border-radius: 3px;
+        background: rgba(10,10,14,0.7);
+        border: 1px solid rgba(255,255,255,0.1);
+        color: rgba(245,245,247,0.65);
+      }
+      #scene-01-shader-transitions-showcase .chip.active {
+        background: rgba(245,158,11,0.18);
+        border-color: rgba(245,158,11,0.6);
+        color: #fde68a;
+      }
+
+      /* Bottom scene label */
+      #scene-01-shader-transitions-showcase .scene-label {
+        position: absolute;
+        left: 48px;
+        bottom: 48px;
+        font-family: "Inter", sans-serif;
+        font-size: 16px;
+        color: #707070;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-weight: 500;
+        z-index: 100;
+      }
+      #scene-01-shader-transitions-showcase .scene-label .accent {
+        color: #f5f5f5;
+        font-weight: 600;
+      }
+      #scene-01-shader-transitions-showcase .scene-counter {
+        position: absolute;
+        right: 48px;
+        bottom: 48px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 13px;
+        letter-spacing: 0.16em;
+        color: rgba(245,245,247,0.4);
+        text-transform: uppercase;
+        z-index: 100;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="scene-01-shader-transitions-showcase"
+      data-composition-id="scene-01-shader-transitions-showcase"
+      data-start="0"
+      data-duration="6"
+      data-width="1920"
+      data-height="1080"
+      style="width: 1920px; height: 1080px;"
+    >
+      <div class="title-bar">
+        <div class="title-eyebrow">SECTION&nbsp;05 <span class="accent">&middot;</span> SHADER&nbsp;TRANSITIONS</div>
+        <div class="title">Four WebGL effects, <span class="glow">one frame</span></div>
+      </div>
+
+      <div class="grid">
+        <!-- PANEL 1 — chromatic-split -->
+        <div class="panel" id="p1">
+          <canvas class="panel-canvas" id="cv1" width="820" height="380"></canvas>
+          <div class="panel-badge">01</div>
+          <div class="panel-chips">
+            <span class="chip" id="p1-chipA">BEAT&nbsp;A</span>
+            <span class="chip" id="p1-chipB">BEAT&nbsp;B</span>
+          </div>
+          <div class="panel-label">
+            <div class="panel-name">chromatic<span class="accent">-</span>split</div>
+            <div class="panel-progress-meta" id="p1-meta">RGB&nbsp;OFFSET</div>
+          </div>
+          <div class="panel-progress"><div class="panel-progress-fill" id="p1-fill"></div></div>
+        </div>
+
+        <!-- PANEL 2 — sdf-iris -->
+        <div class="panel" id="p2">
+          <canvas class="panel-canvas" id="cv2" width="820" height="380"></canvas>
+          <div class="panel-badge">02</div>
+          <div class="panel-chips">
+            <span class="chip" id="p2-chipA">BEAT&nbsp;A</span>
+            <span class="chip" id="p2-chipB">BEAT&nbsp;B</span>
+          </div>
+          <div class="panel-label">
+            <div class="panel-name">sdf<span class="accent">-</span>iris</div>
+            <div class="panel-progress-meta" id="p2-meta">CIRCLE&nbsp;REVEAL</div>
+          </div>
+          <div class="panel-progress"><div class="panel-progress-fill" id="p2-fill"></div></div>
+        </div>
+
+        <!-- PANEL 3 — domain-warp dissolve -->
+        <div class="panel" id="p3">
+          <canvas class="panel-canvas" id="cv3" width="820" height="380"></canvas>
+          <div class="panel-badge">03</div>
+          <div class="panel-chips">
+            <span class="chip" id="p3-chipA">BEAT&nbsp;A</span>
+            <span class="chip" id="p3-chipB">BEAT&nbsp;B</span>
+          </div>
+          <div class="panel-label">
+            <div class="panel-name">domain<span class="accent">-</span>warp</div>
+            <div class="panel-progress-meta" id="p3-meta">FBM&nbsp;DISSOLVE</div>
+          </div>
+          <div class="panel-progress"><div class="panel-progress-fill" id="p3-fill"></div></div>
+        </div>
+
+        <!-- PANEL 4 — whip-pan -->
+        <div class="panel" id="p4">
+          <canvas class="panel-canvas" id="cv4" width="820" height="380"></canvas>
+          <div class="panel-badge">04</div>
+          <div class="panel-chips">
+            <span class="chip" id="p4-chipA">BEAT&nbsp;A</span>
+            <span class="chip" id="p4-chipB">BEAT&nbsp;B</span>
+          </div>
+          <div class="panel-label">
+            <div class="panel-name">whip<span class="accent">-</span>pan</div>
+            <div class="panel-progress-meta" id="p4-meta">MOTION&nbsp;BLUR</div>
+          </div>
+          <div class="panel-progress"><div class="panel-progress-fill" id="p4-fill"></div></div>
+        </div>
+      </div>
+
+      <div class="vignette"></div>
+
+      <div class="scene-label">
+        Scene 01 &middot; <span class="accent">Shader Transitions Showcase</span> &middot; 4 WebGL transitions between A/B beats
+      </div>
+      <div class="scene-counter" id="scene-counter">T &middot; 0.00s</div>
+    </div>
+
+    <script>
+      (function () {
+        window.__timelines = window.__timelines || {};
+
+        var root = document.getElementById("scene-01-shader-transitions-showcase");
+        function $(id) { return root.querySelector("#" + id); }
+
+        // ============================================================
+        // PANEL PAINTING — Beat A and Beat B states for each shader demo.
+        // Each panel canvas is 820x380. We paint A (left content) and B
+        // (right content) using Canvas 2D primitives; the transition
+        // function then composites them per-shader-type.
+        // ============================================================
+
+        var PW = 820, PH = 380;
+
+        // ---- Beat A: dark cyan/violet grid card with circles + label ---
+        function paintBeatA(ctx, accentHue) {
+          // Background — radial dark blue
+          var g = ctx.createRadialGradient(PW * 0.35, PH * 0.5, 60, PW * 0.5, PH * 0.5, PW * 0.6);
+          g.addColorStop(0, "#1a1f3a");
+          g.addColorStop(1, "#05060d");
+          ctx.fillStyle = g;
+          ctx.fillRect(0, 0, PW, PH);
+
+          // Grid lines
+          ctx.strokeStyle = "rgba(34,211,238,0.18)";
+          ctx.lineWidth = 1;
+          for (var x = 0; x <= PW; x += 60) {
+            ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, PH); ctx.stroke();
+          }
+          for (var y = 0; y <= PH; y += 60) {
+            ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(PW, y); ctx.stroke();
+          }
+
+          // Concentric circles left side
+          ctx.lineWidth = 2;
+          for (var r = 30; r <= 140; r += 22) {
+            ctx.strokeStyle = "rgba(34,211,238," + (0.18 + (r / 200) * 0.5) + ")";
+            ctx.beginPath(); ctx.arc(220, 190, r, 0, Math.PI * 2); ctx.stroke();
+          }
+
+          // Solid accent dot
+          ctx.fillStyle = "#22d3ee";
+          ctx.shadowColor = "#22d3ee";
+          ctx.shadowBlur = 25;
+          ctx.beginPath(); ctx.arc(220, 190, 12, 0, Math.PI * 2); ctx.fill();
+          ctx.shadowBlur = 0;
+
+          // Text "A"
+          ctx.fillStyle = "#f5f5f7";
+          ctx.font = "700 110px 'Space Grotesk', sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("A", 560, 175);
+
+          // Subtitle
+          ctx.fillStyle = "rgba(34,211,238,0.85)";
+          ctx.font = "500 17px 'JetBrains Mono', monospace";
+          ctx.fillText("STATE.BEFORE", 560, 250);
+
+          // Bottom accent bar
+          ctx.fillStyle = "rgba(34,211,238,0.5)";
+          ctx.fillRect(440, 280, 240, 2);
+        }
+
+        // ---- Beat B: warm magenta/amber state ---
+        function paintBeatB(ctx) {
+          // Background — radial warm
+          var g = ctx.createRadialGradient(PW * 0.65, PH * 0.5, 60, PW * 0.5, PH * 0.5, PW * 0.65);
+          g.addColorStop(0, "#3a0f24");
+          g.addColorStop(1, "#0d0508");
+          ctx.fillStyle = g;
+          ctx.fillRect(0, 0, PW, PH);
+
+          // Diagonal accent stripes
+          ctx.save();
+          ctx.translate(PW / 2, PH / 2);
+          ctx.rotate(Math.PI / 8);
+          for (var i = -20; i <= 20; i++) {
+            ctx.fillStyle = i % 2 === 0 ? "rgba(245,158,11,0.06)" : "rgba(236,72,153,0.06)";
+            ctx.fillRect(-PW, i * 28, PW * 2, 14);
+          }
+          ctx.restore();
+
+          // Triangle marks right side
+          ctx.fillStyle = "#f59e0b";
+          ctx.shadowColor = "#f59e0b";
+          ctx.shadowBlur = 18;
+          for (var t = 0; t < 5; t++) {
+            var ty = 100 + t * 38;
+            ctx.beginPath();
+            ctx.moveTo(640, ty);
+            ctx.lineTo(670, ty + 12);
+            ctx.lineTo(640, ty + 24);
+            ctx.closePath();
+            ctx.fill();
+          }
+          ctx.shadowBlur = 0;
+
+          // Text "B"
+          ctx.fillStyle = "#fde68a";
+          ctx.font = "700 110px 'Space Grotesk', sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText("B", 260, 175);
+
+          // Subtitle
+          ctx.fillStyle = "rgba(236,72,153,0.95)";
+          ctx.font = "500 17px 'JetBrains Mono', monospace";
+          ctx.fillText("STATE.AFTER", 260, 250);
+
+          // Bottom accent bar
+          ctx.fillStyle = "rgba(236,72,153,0.55)";
+          ctx.fillRect(140, 280, 240, 2);
+        }
+
+        // ============================================================
+        // PRE-RENDER beat A and beat B to offscreen canvases per panel.
+        // (Both panels share content but we keep them per-panel in case
+        // we want to mutate later.)
+        // ============================================================
+        function makeOffscreen(painter) {
+          var off = document.createElement("canvas");
+          off.width = PW; off.height = PH;
+          painter(off.getContext("2d"));
+          return off;
+        }
+
+        // ============================================================
+        // SHADER TRANSITION RENDERERS
+        // Each takes the panel ctx, beatA offscreen, beatB offscreen,
+        // and a normalized progress p in [0, 1]. p=0 → fully A, p=1 → fully B.
+        // ============================================================
+
+        // --- 1. chromatic-split: split A into R/G/B layers offset horizontally,
+        //         fade to B with growing horizontal offsets. RGB channel offset.
+        function renderChromaticSplit(ctx, A, B, p) {
+          ctx.clearRect(0, 0, PW, PH);
+
+          // While transitioning we draw three offset copies of A (R, G, B
+          // channels) plus three of B coming in. The offset peaks at p=0.5.
+          var bell = Math.sin(p * Math.PI); // 0..1..0
+          var maxShift = 38;
+          var shift = maxShift * bell;
+
+          // A side — fades out as p→1
+          var aAlpha = 1 - p;
+          // B side — fades in
+          var bAlpha = p;
+
+          // Draw a base composite (fully-mixed neutral) at low alpha to keep
+          // the dark plate visible during transition
+          ctx.globalAlpha = aAlpha * 0.55;
+          ctx.drawImage(A, 0, 0);
+          ctx.globalAlpha = bAlpha * 0.55;
+          ctx.drawImage(B, 0, 0);
+
+          // RGB-split layers via screen blending — RED layer (left shift)
+          ctx.globalCompositeOperation = "screen";
+
+          // RED channel of A pulled left, B pushed right
+          ctx.globalAlpha = aAlpha;
+          ctx.fillStyle = "#ff0040";
+          // Approximate channel split: redraw A clipped + tinted
+          drawTintedLayer(ctx, A, -shift, 0, "#ff2244", aAlpha);
+          drawTintedLayer(ctx, A, 0, 0, "#22ff88", aAlpha * 0.9);
+          drawTintedLayer(ctx, A, shift, 0, "#3388ff", aAlpha);
+
+          drawTintedLayer(ctx, B, -shift * 0.6, 0, "#ff2244", bAlpha);
+          drawTintedLayer(ctx, B, 0, 0, "#22ff88", bAlpha * 0.9);
+          drawTintedLayer(ctx, B, shift * 0.6, 0, "#3388ff", bAlpha);
+
+          ctx.globalCompositeOperation = "source-over";
+          ctx.globalAlpha = 1;
+
+          // Scanline overlay during transition
+          if (bell > 0.05) {
+            ctx.fillStyle = "rgba(0,0,0," + (0.18 * bell) + ")";
+            for (var y = 0; y < PH; y += 4) {
+              ctx.fillRect(0, y, PW, 1);
+            }
+          }
+        }
+
+        function drawTintedLayer(ctx, src, dx, dy, color, alpha) {
+          // Draw src offset, then multiply with color via composite, then add
+          // back. Cheap approximation of channel-isolated draw.
+          var off = drawTintedLayer._scratch;
+          if (!off) {
+            off = document.createElement("canvas");
+            off.width = PW; off.height = PH;
+            drawTintedLayer._scratch = off;
+          }
+          var octx = off.getContext("2d");
+          octx.globalCompositeOperation = "source-over";
+          octx.clearRect(0, 0, PW, PH);
+          octx.drawImage(src, dx, dy);
+          octx.globalCompositeOperation = "multiply";
+          octx.fillStyle = color;
+          octx.fillRect(0, 0, PW, PH);
+
+          ctx.globalAlpha = alpha;
+          ctx.drawImage(off, 0, 0);
+          ctx.globalAlpha = 1;
+        }
+
+        // --- 2. sdf-iris: A behind, B masked by an expanding circle from
+        //         center. Soft edge from SDF distance field.
+        function renderSdfIris(ctx, A, B, p) {
+          ctx.clearRect(0, 0, PW, PH);
+
+          // A always full
+          ctx.drawImage(A, 0, 0);
+
+          // Build a radial mask for B
+          var cx = PW * 0.5, cy = PH * 0.5;
+          var maxR = Math.sqrt(cx * cx + cy * cy);
+          var r = p * maxR * 1.05;
+
+          // Compose B into a scratch, masked by an expanding circle with
+          // a soft edge.
+          var off = renderSdfIris._scratch;
+          if (!off) {
+            off = document.createElement("canvas");
+            off.width = PW; off.height = PH;
+            renderSdfIris._scratch = off;
+          }
+          var octx = off.getContext("2d");
+          octx.globalCompositeOperation = "source-over";
+          octx.clearRect(0, 0, PW, PH);
+          octx.drawImage(B, 0, 0);
+
+          // Mask: keep only inside the circle (with soft edge)
+          octx.globalCompositeOperation = "destination-in";
+          var softR = Math.max(8, r * 0.06);
+          var grad = octx.createRadialGradient(cx, cy, Math.max(0, r - softR), cx, cy, r + softR);
+          grad.addColorStop(0, "rgba(255,255,255,1)");
+          grad.addColorStop(0.5, "rgba(255,255,255,1)");
+          grad.addColorStop(1, "rgba(255,255,255,0)");
+          octx.fillStyle = grad;
+          octx.fillRect(0, 0, PW, PH);
+          octx.globalCompositeOperation = "source-over";
+
+          ctx.drawImage(off, 0, 0);
+
+          // Ring highlight on the iris edge
+          if (p > 0.02 && p < 0.98) {
+            ctx.strokeStyle = "rgba(245,158,11,0.85)";
+            ctx.lineWidth = 2;
+            ctx.shadowColor = "rgba(245,158,11,0.7)";
+            ctx.shadowBlur = 16;
+            ctx.beginPath();
+            ctx.arc(cx, cy, r, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+          }
+        }
+
+        // --- 3. domain-warp dissolve: A pixels dissolve into B based on a
+        //         deterministic FBM noise threshold. Organic, no grid.
+        // Pre-build a noise texture once.
+        function hash2(x, y) {
+          var n = x * 374761393 + y * 668265263;
+          n = (n ^ (n >> 13)) * 1274126177;
+          return ((n ^ (n >> 16)) & 0x7fffffff) / 0x7fffffff;
+        }
+        function vnoise(x, y) {
+          var ix = Math.floor(x), iy = Math.floor(y);
+          var fx = x - ix, fy = y - iy;
+          fx = fx * fx * (3 - 2 * fx);
+          fy = fy * fy * (3 - 2 * fy);
+          var a = hash2(ix, iy), b = hash2(ix + 1, iy);
+          var c = hash2(ix, iy + 1), d = hash2(ix + 1, iy + 1);
+          return a + (b - a) * fx + (c - a) * fy + (a - b - c + d) * fx * fy;
+        }
+        function fbm(x, y) {
+          return vnoise(x, y) * 0.55 + vnoise(x * 2.1 + 3.7, y * 2.1 + 1.3) * 0.3 +
+                 vnoise(x * 4.3 + 7.1, y * 4.3 + 5.9) * 0.15;
+        }
+
+        // Build a low-res FBM lookup canvas (one-time cost) and upscale at draw.
+        var FBM_W = 205, FBM_H = 95;
+        var fbmCanvas = (function() {
+          var c = document.createElement("canvas");
+          c.width = FBM_W; c.height = FBM_H;
+          var ictx = c.getContext("2d");
+          var img = ictx.createImageData(FBM_W, FBM_H);
+          for (var y = 0; y < FBM_H; y++) {
+            for (var x = 0; x < FBM_W; x++) {
+              // domain warp: fbm(p + fbm(p))
+              var qx = fbm(x * 0.05, y * 0.05);
+              var qy = fbm(x * 0.05 + 5.2, y * 0.05 + 1.3);
+              var v = fbm(x * 0.05 + qx * 1.6, y * 0.05 + qy * 1.6);
+              v = Math.max(0, Math.min(1, v));
+              var byte = Math.floor(v * 255);
+              var i = (y * FBM_W + x) * 4;
+              img.data[i] = byte;
+              img.data[i + 1] = byte;
+              img.data[i + 2] = byte;
+              img.data[i + 3] = 255;
+            }
+          }
+          ictx.putImageData(img, 0, 0);
+          return c;
+        })();
+
+        function renderDomainWarp(ctx, A, B, p) {
+          ctx.clearRect(0, 0, PW, PH);
+          ctx.drawImage(A, 0, 0);
+
+          // Use FBM noise as threshold: pixels with noise < p reveal B.
+          var off = renderDomainWarp._scratch;
+          if (!off) {
+            off = document.createElement("canvas");
+            off.width = PW; off.height = PH;
+            renderDomainWarp._scratch = off;
+          }
+          var octx = off.getContext("2d");
+          octx.globalCompositeOperation = "source-over";
+          octx.clearRect(0, 0, PW, PH);
+          octx.drawImage(B, 0, 0);
+
+          // Build a mask: threshold the FBM canvas so that pixels with value
+          // < p are opaque, others transparent. We do this by drawing a soft
+          // gradient through the FBM tonal range using a contrast stretch.
+          octx.globalCompositeOperation = "destination-in";
+
+          // Draw an upscaled FBM, then use a contrast-stretched threshold by
+          // adjusting global alpha & overdraws. To get a soft band around p:
+          // we draw the FBM with global alpha and then a hard tint pass.
+          var maskBuilder = renderDomainWarp._mask;
+          if (!maskBuilder) {
+            maskBuilder = document.createElement("canvas");
+            maskBuilder.width = PW; maskBuilder.height = PH;
+            renderDomainWarp._mask = maskBuilder;
+          }
+          var mctx = maskBuilder.getContext("2d");
+          mctx.globalCompositeOperation = "source-over";
+          mctx.clearRect(0, 0, PW, PH);
+          // Upscale FBM
+          mctx.imageSmoothingEnabled = true;
+          mctx.drawImage(fbmCanvas, 0, 0, PW, PH);
+          // Now threshold: every pixel with brightness < p should be opaque
+          // white in the mask, else transparent. We approximate by drawing
+          // an opaque white overlay clipped by the FBM via composite ops.
+          // Simpler: read back, threshold per pixel.
+          var imgData = mctx.getImageData(0, 0, PW, PH);
+          var thr = Math.floor(p * 255);
+          var soft = 28; // soft edge width in luminance units
+          for (var i = 0; i < imgData.data.length; i += 4) {
+            var v = imgData.data[i];
+            var alpha;
+            if (v < thr - soft) alpha = 255;
+            else if (v > thr + soft) alpha = 0;
+            else alpha = Math.round(((thr + soft) - v) / (2 * soft) * 255);
+            imgData.data[i] = 255;
+            imgData.data[i + 1] = 255;
+            imgData.data[i + 2] = 255;
+            imgData.data[i + 3] = alpha;
+          }
+          mctx.putImageData(imgData, 0, 0);
+
+          // Use mask as destination-in for B
+          octx.drawImage(maskBuilder, 0, 0);
+          octx.globalCompositeOperation = "source-over";
+
+          ctx.drawImage(off, 0, 0);
+
+          // Glow accent on the dissolve edge for visual punch
+          if (p > 0.05 && p < 0.95) {
+            ctx.globalAlpha = 0.35 * Math.sin(p * Math.PI);
+            ctx.globalCompositeOperation = "screen";
+            ctx.fillStyle = "#f59e0b";
+            ctx.drawImage(maskBuilder, 0, 0);
+            ctx.globalCompositeOperation = "source-over";
+            ctx.globalAlpha = 1;
+          }
+        }
+
+        // --- 4. whip-pan: A slides left while B slides in from right, with
+        //         strong motion blur during transition.
+        function renderWhipPan(ctx, A, B, p) {
+          ctx.clearRect(0, 0, PW, PH);
+
+          // Ease-in-out for the pan position so center frames have heavy
+          // overlap (the motion-blur sweet spot).
+          var ep = p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2;
+          var aDx = -ep * PW;
+          var bDx = (1 - ep) * PW;
+
+          // Approximated motion blur: draw multiple copies offset
+          // horizontally, fading.
+          var blurStrength = Math.sin(p * Math.PI); // 0..1..0
+          var steps = 7;
+          var maxBlurOffset = 64 * blurStrength;
+          // A
+          for (var i = 0; i < steps; i++) {
+            var t = i / (steps - 1);
+            ctx.globalAlpha = (1 / steps) * (1 - p * 0.85);
+            ctx.drawImage(A, aDx + (t - 0.5) * maxBlurOffset, 0);
+          }
+          // B
+          for (var j = 0; j < steps; j++) {
+            var t2 = j / (steps - 1);
+            ctx.globalAlpha = (1 / steps) * (p * 0.9 + 0.1);
+            ctx.drawImage(B, bDx + (t2 - 0.5) * maxBlurOffset, 0);
+          }
+          ctx.globalAlpha = 1;
+
+          // Bright streak in the center direction of pan
+          if (blurStrength > 0.1) {
+            var sx = PW * 0.5;
+            var grd = ctx.createLinearGradient(0, 0, PW, 0);
+            grd.addColorStop(0, "rgba(245,158,11,0)");
+            grd.addColorStop(0.5, "rgba(245,158,11," + (0.18 * blurStrength) + ")");
+            grd.addColorStop(1, "rgba(245,158,11,0)");
+            ctx.fillStyle = grd;
+            ctx.fillRect(0, PH * 0.45, PW, PH * 0.1);
+          }
+        }
+
+        // ============================================================
+        // BUILD PANELS — pre-paint A and B for each
+        // ============================================================
+        var panels = [];
+        for (var pi = 1; pi <= 4; pi++) {
+          var canvas = $("cv" + pi);
+          var ctx = canvas.getContext("2d");
+          var beatA = makeOffscreen(paintBeatA);
+          var beatB = makeOffscreen(paintBeatB);
+          panels.push({
+            canvas: canvas,
+            ctx: ctx,
+            A: beatA,
+            B: beatB,
+          });
+        }
+
+        // Panel transition schedule — staggered so every snapshot frame
+        // catches at least one panel mid-transition.
+        // Each panel: transition starts at .start, duration .dur, then
+        // a hold-on-B period, then returns to A (rebound) so we see
+        // continuous motion across the 6s scene.
+        //
+        // Sequence per panel:
+        //   t < start                → fully A
+        //   start..start+dur         → A → B (forward transition)
+        //   start+dur..start+dur+H   → hold on B
+        //   start+dur+H..start+dur+H+rebDur → B → A (rebound)
+        //   after                    → fully A
+        var TRANS_DUR = 1.1;
+        var REBOUND_DUR = 0.9;
+        var HOLD = 0.6;
+        var schedule = [
+          { start: 0.5, render: renderChromaticSplit, name: "chromatic-split" },
+          { start: 1.5, render: renderSdfIris,        name: "sdf-iris" },
+          { start: 2.5, render: renderDomainWarp,     name: "domain-warp" },
+          { start: 3.5, render: renderWhipPan,        name: "whip-pan" },
+        ];
+
+        function panelProgress(t, start) {
+          // Returns p in [0,1] where 0 means fully on A, 1 means fully on B.
+          var d1 = t - start;
+          if (d1 < 0) return 0;
+          if (d1 < TRANS_DUR) return d1 / TRANS_DUR; // forward
+          if (d1 < TRANS_DUR + HOLD) return 1;       // hold on B
+          var d2 = d1 - TRANS_DUR - HOLD;
+          if (d2 < REBOUND_DUR) return 1 - (d2 / REBOUND_DUR); // rebound
+          return 0;
+        }
+
+        function renderAtTime(t) {
+          for (var i = 0; i < panels.length; i++) {
+            var s = schedule[i];
+            var pan = panels[i];
+            var p = panelProgress(t, s.start);
+            s.render(pan.ctx, pan.A, pan.B, p);
+          }
+        }
+
+        // Initial render to lock first frame state
+        renderAtTime(0);
+
+        // ============================================================
+        // GSAP TIMELINE
+        // ============================================================
+        var tl = gsap.timeline({ paused: true });
+
+        // Title entrance
+        var titleEyebrow = root.querySelector(".title-eyebrow");
+        var title = root.querySelector(".title");
+        gsap.set(titleEyebrow, { y: -16, autoAlpha: 0 });
+        gsap.set(title, { y: 18, autoAlpha: 0 });
+        tl.fromTo(titleEyebrow,
+          { y: -16, autoAlpha: 0 },
+          { y: 0, autoAlpha: 1, duration: 0.55, ease: "power4.out" },
+          0.1
+        );
+        tl.fromTo(title,
+          { y: 18, autoAlpha: 0 },
+          { y: 0, autoAlpha: 1, duration: 0.7, ease: "expo.out" },
+          0.2
+        );
+        // Subtle title breathing
+        tl.to(title, { y: -4, duration: 2.6, ease: "sine.inOut", yoyo: true, repeat: 1 }, 1.0);
+
+        // Panel entrance — staggered scale-in
+        gsap.set("#scene-01-shader-transitions-showcase .panel",
+          { autoAlpha: 0, scale: 0.94, transformOrigin: "center center" }
+        );
+        tl.to("#scene-01-shader-transitions-showcase .panel", {
+          autoAlpha: 1, scale: 1, duration: 0.55, ease: "back.out(1.5)",
+          stagger: 0.08,
+        }, 0.1);
+
+        // Progress fills + chip swaps per panel — synced to the same
+        // schedule the canvas renderer uses, so the UI chrome reads
+        // the same state.
+        for (var k = 0; k < schedule.length; k++) {
+          (function(idx) {
+            var s = schedule[idx];
+            var n = idx + 1;
+            var fill = $("p" + n + "-fill");
+            var chipA = $("p" + n + "-chipA");
+            var chipB = $("p" + n + "-chipB");
+            var meta = $("p" + n + "-meta");
+
+            gsap.set(fill, { scaleX: 0 });
+            gsap.set(chipA, { className: "chip active" });
+            gsap.set(chipB, { className: "chip" });
+
+            // Forward transition
+            tl.to(fill, { scaleX: 1, duration: TRANS_DUR, ease: "power2.inOut" }, s.start);
+            // Swap chips at midpoint
+            tl.call(function () {
+              chipA.classList.remove("active");
+              chipB.classList.add("active");
+              meta.textContent = ["RGB OFFSET", "CIRCLE REVEAL", "FBM DISSOLVE", "MOTION BLUR"][idx]
+                + " 100%";
+            }, [], s.start + TRANS_DUR);
+
+            // Rebound transition (back to A)
+            var rebStart = s.start + TRANS_DUR + HOLD;
+            tl.to(fill, { scaleX: 0, duration: REBOUND_DUR, ease: "power2.inOut" }, rebStart);
+            tl.call(function () {
+              chipB.classList.remove("active");
+              chipA.classList.add("active");
+              meta.textContent = ["RGB OFFSET", "CIRCLE REVEAL", "FBM DISSOLVE", "MOTION BLUR"][idx];
+            }, [], rebStart + REBOUND_DUR);
+          })(k);
+        }
+
+        // Bottom counter — discrete tl.set calls along the duration so it
+        // reads correctly during seek.
+        var counterEl = $("scene-counter");
+        for (var ms = 0; ms <= 60; ms++) {
+          var tt = ms * 0.1;
+          tl.set(counterEl, { textContent: "T · " + tt.toFixed(2) + "s" }, tt);
+        }
+
+        // Pad timeline to full duration so it always covers 6s
+        tl.to({}, { duration: 6.0 }, 0);
+
+        window.__timelines["scene-01-shader-transitions-showcase"] = tl;
+
+        // Drive panel canvas rendering off gsap.ticker reading tl.time().
+        // This works under both live playback and tl.seek() (snapshot).
+        var lastT = -1;
+        gsap.ticker.add(function () {
+          var t = tl.time();
+          if (t !== lastT) {
+            lastT = t;
+            renderAtTime(t);
+          }
+        });
+      })();
+    </script>
+  </body>
+</html>
