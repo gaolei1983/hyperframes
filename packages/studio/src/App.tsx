@@ -47,10 +47,23 @@ import {
   normalizeStudioCompositionPath,
   readStudioUrlStateFromWindow,
 } from "./utils/studioUrlState";
+import { trackStudioSessionStart } from "./telemetry/events";
+import { hasFiredSessionStart, markSessionStartFired } from "./telemetry/config";
 
 export function StudioApp() {
   const { projectId, resolving, waitingForServer } = useServerConnection();
   const initialUrlStateRef = useRef(readStudioUrlStateFromWindow());
+
+  // Fire once per browser tab session — sessionStorage-backed so HMR
+  // remounts, route changes, and any future StudioApp remount within the
+  // same tab don't refire `studio_session_start`. `has_project` lets us
+  // tell scratch-open from project-context-open.
+  useEffect(() => {
+    if (resolving || waitingForServer) return;
+    if (hasFiredSessionStart()) return;
+    markSessionStartFired();
+    trackStudioSessionStart({ has_project: projectId != null });
+  }, [projectId, resolving, waitingForServer]);
 
   const [activeCompPath, setActiveCompPath] = useState<string | null>(null);
   const [activeCompPathHydrated, setActiveCompPathHydrated] = useState(

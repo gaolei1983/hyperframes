@@ -12,6 +12,7 @@ import { resolve, join, basename } from "node:path";
 import { createProjectWatcher, type ProjectWatcher } from "./fileWatcher.js";
 import { loadRuntimeSource } from "./runtimeSource.js";
 import { VERSION as version } from "../version.js";
+import { emitStudioRenderComplete, emitStudioRenderError } from "./studioRenderTelemetry.js";
 import {
   createStudioManualEditsRenderBodyScript,
   createStudioApi,
@@ -253,6 +254,7 @@ export function createStudioServer(options: StudioServerOptions): StudioServer {
       };
 
       // Run render asynchronously, mutating the state object
+      const startTime = Date.now();
       (async () => {
         try {
           const { createRenderJob, executeRenderJob } = await import("@hyperframes/producer");
@@ -279,7 +281,6 @@ export function createStudioServer(options: StudioServerOptions): StudioServer {
             ...(manualEditsRenderScript ? { renderBodyScripts: [manualEditsRenderScript] } : {}),
             ...(opts.composition ? { entryFile: opts.composition } : {}),
           });
-          const startTime = Date.now();
           const onProgress = (j: { progress: number; currentStage?: string }) => {
             state.progress = j.progress;
             if (j.currentStage) state.stage = j.currentStage;
@@ -292,9 +293,11 @@ export function createStudioServer(options: StudioServerOptions): StudioServer {
             metaPath,
             JSON.stringify({ status: "complete", durationMs: Date.now() - startTime }),
           );
+          emitStudioRenderComplete(opts, Date.now() - startTime, job.perfSummary);
         } catch (err) {
           state.status = "failed";
           state.error = err instanceof Error ? err.message : String(err);
+          emitStudioRenderError(opts, Date.now() - startTime, state.stage, err);
           try {
             const metaPath = opts.outputPath.replace(/\.(mp4|webm|mov)$/, ".meta.json");
             writeFileSync(metaPath, JSON.stringify({ status: "failed" }));
