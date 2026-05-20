@@ -1,9 +1,3 @@
-# ⚠️ READ HANDOFF.md FIRST
-
-Before starting any work in this repo, read `HANDOFF.md` at the repo root. It's the full context document from the May 15–16 2026 pipeline quality session — 747 lines covering git state, all skill + code changes, eval arena, video locations, key discoveries, and pending work. Skipping it will cause you to miss critical context.
-
----
-
 # Hyperframes
 
 Open-source video rendering framework: write HTML, render video.
