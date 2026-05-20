@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>scene-16-notification-stack</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet"
+  />
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0a0b10; }
+
+    [data-composition-id="scene-16-notification-stack"] {
+      position: relative;
+      width: 1920px;
+      height: 1080px;
+      overflow: hidden;
+      background: radial-gradient(ellipse 1400px 900px at 50% 50%, #14171f 0%, #06070b 70%);
+      font-family: "Inter", -apple-system, sans-serif;
+      color: #f0f0f0;
+    }
+
+    /* Mock app shell (greyed-out app behind) */
+    .app-shell {
+      position: absolute;
+      inset: 80px;
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 16px;
+      padding: 32px;
+      opacity: 0.4;
+    }
+    .app-topbar {
+      display: flex;
+      gap: 12px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .app-dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,0.15); }
+    .app-content {
+      margin-top: 32px;
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 24px;
+    }
+    .sidebar {
+      background: rgba(255,255,255,0.025);
+      border-radius: 10px;
+      padding: 20px;
+      height: 600px;
+    }
+    .sidebar-item {
+      height: 22px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 4px;
+      margin-bottom: 12px;
+    }
+    .sidebar-item.active { background: rgba(91, 141, 255, 0.2); }
+    .main-area {
+      background: rgba(255,255,255,0.025);
+      border-radius: 10px;
+      padding: 24px;
+      height: 600px;
+    }
+    .main-row {
+      height: 16px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 4px;
+      margin-bottom: 18px;
+    }
+    .main-row.short { width: 60%; }
+    .main-row.long { width: 90%; }
+
+    /* === The notification stack (top-right) === */
+    .notif-container {
+      position: absolute;
+      top: 120px; right: 120px;
+      width: 480px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      z-index: 10;
+    }
+
+    .notif {
+      background: #ffffff;
+      border-radius: 14px;
+      padding: 18px 22px;
+      box-shadow:
+        0 4px 8px rgba(0,0,0,0.1),
+        0 16px 40px rgba(0,0,0,0.25);
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      opacity: 0;
+      transform: translateX(120%);
+      position: relative;
+    }
+
+    .notif-icon {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-family: "Inter", sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .notif.success .notif-icon { background: #10b981; }
+    .notif.error .notif-icon { background: #ef4444; }
+    .notif.info .notif-icon { background: #5b8dff; }
+    .notif.warning .notif-icon { background: #f59e0b; }
+
+    .notif-body { flex: 1; }
+    .notif-title {
+      font-family: "Inter", sans-serif;
+      font-size: 16px;
+      font-weight: 600;
+      color: #1d1c19;
+      letter-spacing: -0.005em;
+    }
+    .notif-message {
+      font-family: "Inter", sans-serif;
+      font-size: 14px;
+      color: #6b6b6b;
+      margin-top: 4px;
+      line-height: 1.4;
+    }
+    .notif-time {
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px;
+      color: #a3a3a3;
+      letter-spacing: 0.04em;
+      margin-top: 6px;
+    }
+
+    .notif-close {
+      width: 20px; height: 20px;
+      border-radius: 50%;
+      background: #f0f0f0;
+      color: #6b6b6b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    /* Progress bar at bottom of each notif (auto-dismiss timer) */
+    .notif-progress {
+      position: absolute;
+      left: 14px; right: 14px; bottom: 6px;
+      height: 2px;
+      background: rgba(0,0,0,0.06);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .notif-progress-bar {
+      height: 100%;
+      width: 100%;
+      background: currentColor;
+      transform-origin: left center;
+    }
+    .notif.success .notif-progress-bar { background: #10b981; }
+    .notif.error .notif-progress-bar { background: #ef4444; }
+    .notif.info .notif-progress-bar { background: #5b8dff; }
+    .notif.warning .notif-progress-bar { background: #f59e0b; }
+
+    /* Bottom caption */
+    .caption {
+      position: absolute;
+      bottom: 80px; left: 0; right: 0;
+      text-align: center;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 13px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+    }
+
+    .scene-label {
+      position: absolute;
+      left: 24px; bottom: 18px;
+      font-family: "JetBrains Mono", monospace;
+      font-size: 11px;
+      color: rgba(255,255,255,0.35);
+      letter-spacing: 0.06em;
+    }
+    .scene-label b { color: rgba(255,255,255,0.65); }
+  </style>
+</head>
+<body>
+  <div
+    id="scene-16-notification-stack"
+    data-composition-id="scene-16-notification-stack"
+    data-start="0"
+    data-duration="8"
+    data-width="1920"
+    data-height="1080"
+  >
+    <!-- Mock app shell behind (greyed out) -->
+    <div class="app-shell">
+      <div class="app-topbar">
+        <div class="app-dot"></div>
+        <div class="app-dot"></div>
+        <div class="app-dot"></div>
+      </div>
+      <div class="app-content">
+        <div class="sidebar">
+          <div class="sidebar-item active"></div>
+          <div class="sidebar-item"></div>
+          <div class="sidebar-item"></div>
+          <div class="sidebar-item"></div>
+          <div class="sidebar-item"></div>
+          <div class="sidebar-item"></div>
+        </div>
+        <div class="main-area">
+          <div class="main-row long"></div>
+          <div class="main-row short"></div>
+          <div class="main-row long"></div>
+          <div class="main-row short"></div>
+          <div class="main-row long"></div>
+          <div class="main-row short"></div>
+          <div class="main-row long"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast notification stack (top-right) -->
+    <div class="notif-container">
+      <!-- Notification 1: Success -->
+      <div class="notif success" id="notif-1">
+        <div class="notif-icon">✓</div>
+        <div class="notif-body">
+          <div class="notif-title">Video rendered successfully</div>
+          <div class="notif-message">launch-video-q2.mp4 · 47.2 MB · ready to share</div>
+          <div class="notif-time">JUST NOW</div>
+        </div>
+        <div class="notif-close">×</div>
+        <div class="notif-progress"><div class="notif-progress-bar"></div></div>
+      </div>
+
+      <!-- Notification 2: Info -->
+      <div class="notif info" id="notif-2">
+        <div class="notif-icon">i</div>
+        <div class="notif-body">
+          <div class="notif-title">3 teammates joined your workspace</div>
+          <div class="notif-message">Northshore brand team can now edit your videos</div>
+          <div class="notif-time">2 SEC AGO</div>
+        </div>
+        <div class="notif-close">×</div>
+        <div class="notif-progress"><div class="notif-progress-bar"></div></div>
+      </div>
+
+      <!-- Notification 3: Warning -->
+      <div class="notif warning" id="notif-3">
+        <div class="notif-icon">!</div>
+        <div class="notif-body">
+          <div class="notif-title">Brand kit needs review</div>
+          <div class="notif-message">2 color tokens don't meet WCAG contrast requirements</div>
+          <div class="notif-time">5 SEC AGO</div>
+        </div>
+        <div class="notif-close">×</div>
+        <div class="notif-progress"><div class="notif-progress-bar"></div></div>
+      </div>
+
+      <!-- Notification 4: Error -->
+      <div class="notif error" id="notif-4">
+        <div class="notif-icon">×</div>
+        <div class="notif-body">
+          <div class="notif-title">Render failed: insufficient quota</div>
+          <div class="notif-message">Upgrade to Pro for unlimited renders · ↗</div>
+          <div class="notif-time">8 SEC AGO</div>
+        </div>
+        <div class="notif-close">×</div>
+        <div class="notif-progress"><div class="notif-progress-bar"></div></div>
+      </div>
+    </div>
+
+    <div class="caption">4 NOTIFICATIONS · SUCCESS · INFO · WARNING · ERROR — CANONICAL SHADCN-STYLE STACK</div>
+
+    <div class="scene-label">Section 04 · <b>Notification Stack</b> · 4 toast notifications cascade in from right with auto-dismiss timer bars</div>
+  </div>
+
+  <script>
+    (function () {
+      var BEAT = 8;
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+
+      // App shell fades in
+      tl.fromTo(".app-shell",
+        { opacity: 0 },
+        { opacity: 0.4, duration: 0.6, ease: "power2.out" }, 0);
+
+      // 4 notifications cascade in from right
+      var notifs = ["#notif-1", "#notif-2", "#notif-3", "#notif-4"];
+      notifs.forEach(function (id, i) {
+        var startTime = 0.6 + i * 0.5;
+        tl.to(id,
+          { opacity: 1, x: 0, duration: 0.55, ease: "back.out(1.5)" },
+          startTime);
+
+        // Progress bar starts depleting after notification appears
+        var progressEl = id + " .notif-progress-bar";
+        tl.fromTo(progressEl,
+          { scaleX: 1 },
+          { scaleX: 0, duration: 5.0, ease: "none" },
+          startTime + 0.3);
+      });
+
+      // === Hold (3.0-7.0s): subtle motion + the first notification auto-dismisses ===
+      // After 5 seconds of being shown, notif-1 slides out (auto-dismiss)
+      tl.to("#notif-1",
+        { x: "120%", opacity: 0, duration: 0.5, ease: "expo.in" }, 5.6);
+      // The stack collapses up to fill the space
+      tl.to(["#notif-2", "#notif-3", "#notif-4"],
+        { y: -86, duration: 0.4, ease: "expo.inOut" }, 5.7);
+
+      // Subtle hover-style lift on remaining notifs
+      tl.to("#notif-3",
+        { x: -4, scale: 1.02, duration: 0.4, ease: "sine.inOut", yoyo: true, repeat: 1 }, 6.4);
+
+      // Bottom caption fades in
+      tl.fromTo(".caption",
+        { opacity: 0, y: 6 },
+        { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 2.5);
+
+      window.__timelines["scene-16-notification-stack"] = tl;
+    })();
+  </script>
+</body>
+</html>

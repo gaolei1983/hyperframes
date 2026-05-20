@@ -102,6 +102,8 @@ Need a specific technique? Use this table to find the canonical scene.
 | Figma-style design inspector panel with cycling values | [`04-composed-ui/scene-13-design-inspector/`](04-composed-ui/scene-13-design-inspector/) |
 | **3-tier SaaS pricing card reveal** (featured center card with "Most Popular" badge + deterministic price counters) | [`04-composed-ui/scene-14-pricing-card-reveal/`](04-composed-ui/scene-14-pricing-card-reveal/) |
 | **Customer testimonial card** (Fraunces italic quote + avatar + author + company logo + 5-star cascade) | [`04-composed-ui/scene-15-testimonial-card/`](04-composed-ui/scene-15-testimonial-card/) |
+| **Notification stack** (4 shadcn-style toast notifications: success / info / warning / error with auto-dismiss) | [`04-composed-ui/scene-16-notification-stack/`](04-composed-ui/scene-16-notification-stack/) |
+| **Loading states showcase** (skeleton / spinner / progress bar / dots / circular / pulse — 6 patterns side-by-side) | [`04-composed-ui/scene-17-loading-states/`](04-composed-ui/scene-17-loading-states/) |
 | WebGL fragment shader + Canvas 2D fallback | [`07-html-in-canvas/scene-01-webgl-shader/`](07-html-in-canvas/scene-01-webgl-shader/) |
 | Canvas 2D procedural ASCII art + lightning | [`07-html-in-canvas/scene-02-canvas-ascii/`](07-html-in-canvas/scene-02-canvas-ascii/) |
 | Canvas 2D cursor blur + chromatic aberration text | [`07-html-in-canvas/scene-03-cursor-blur-sweeps/`](07-html-in-canvas/scene-03-cursor-blur-sweeps/) |
@@ -147,10 +149,10 @@ Need a specific technique? Use this table to find the canonical scene.
 
 ## Stitched Grand Tour reel
 
-All 77 scenes concatenated back-to-back as a single 8:52 MP4. Useful for visual-gestalt review or for sharing the library at a glance:
+All 79 scenes concatenated back-to-back as a single 9:07 MP4. Useful for visual-gestalt review or for sharing the library at a glance:
 
-- **Grand Tour reel:** https://www.heygenverse.com/s/417ac325-e606-48f1-b716-8f8747b44d87/raw
-- **Browsable gallery (per-section grid, all 77 scenes as embedded videos):** https://www.heygenverse.com/a/1636f2fe-3ddc-4543-9a56-0d0b99538807
+- **Grand Tour reel:** https://www.heygenverse.com/s/12548e7f-205c-4144-a2be-4423c2ccc16c/raw
+- **Browsable gallery (per-section grid, all 79 scenes as embedded videos):** https://www.heygenverse.com/a/1636f2fe-3ddc-4543-9a56-0d0b99538807
 
 Rebuild the reel after adding scenes: `ffmpeg -f concat -safe 0 -i /tmp/concat-list.txt -c copy out.mp4` where the concat list orders all scene MP4s in section sequence.
 

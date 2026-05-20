@@ -1,17 +1,17 @@
 # HANDOFF — Examples Library (Sessions May 19, 2026)
 
-> **READ THIS BEFORE PICKING UP THE EXAMPLES LIBRARY WORK.** This is the followup to `HANDOFF.md`. This doc covers what was built May 19: the HyperFrames Capability Showcase example library, **77 scenes across 13 sections**, all rendered and uploaded, gallery app live, skill wiring updated to 3-mode framework, second-pass production-project survey (batch 10), plus five rounds of hand-authored gap-fillers (batches 11/12/13/14/15).
+> **READ THIS BEFORE PICKING UP THE EXAMPLES LIBRARY WORK.** This is the followup to `HANDOFF.md`. This doc covers what was built May 19: the HyperFrames Capability Showcase example library, **79 scenes across 13 sections**, all rendered and uploaded, gallery app live, skill wiring updated to 3-mode framework, second-pass production-project survey (batch 10), plus six rounds of hand-authored gap-fillers (batches 11-16).
 
 ---
 
 ## TL;DR
 
-**What got built:** **77 production-grade example scenes** at `skills/website-to-hyperframes/examples/`, covering every HyperFrames technique. Each scene is standalone-renderable, lint-clean, snapshot-verified, composed 100% from HTML/CSS/SVG/GSAP/Canvas — zero captured screenshots. Plus a single concatenated "Grand Tour" reel (**8:52 MP4**) that plays all 77 back-to-back.
+**What got built:** **79 production-grade example scenes** at `skills/website-to-hyperframes/examples/`, covering every HyperFrames technique. Each scene is standalone-renderable, lint-clean, snapshot-verified, composed 100% from HTML/CSS/SVG/GSAP/Canvas — zero captured screenshots. Plus a single concatenated "Grand Tour" reel (**9:07 MP4**) that plays all 79 back-to-back.
 
 **Why:** `HANDOFF.md` Recommendation 1 said skill prose was exhausted as a lever (11 eval branches all produced slideshow videos regardless of prose changes). Recommendation 2 said: **show, don't tell** — build production-grade reference examples agents can use. This library is that.
 
 **Gallery is live:** https://www.heygenverse.com/a/1636f2fe-3ddc-4543-9a56-0d0b99538807
-**Grand Tour reel (all 77 scenes, 8:52):** https://www.heygenverse.com/s/417ac325-e606-48f1-b716-8f8747b44d87/raw
+**Grand Tour reel (all 79 scenes, 9:07):** https://www.heygenverse.com/s/12548e7f-205c-4144-a2be-4423c2ccc16c/raw
 
 **Skill wiring is active AND updated** (May 19 evening): the skill now explicitly names **three legitimate modes** for using examples — `copy+mutate` (1:1 fit), `recombine` (2-3 scenes layered), `fresh` (author from scratch with examples as taste reference). Examples are NEVER finished beats — non-negotiable customization rule applies in every mode. See **[Skill Wiring](#skill-wiring)** below for the patch summary.
 
@@ -20,9 +20,14 @@
 - **step-5-build.md**: mode-aware build process; explicit "fresh ≠ paste, recombine ≠ frankenstein".
 - **beat-builder-guide.md**: 3-mode table is the FIRST mandatory read; "non-negotiable in every mode: customize."
 
-**Branch:** `feat/pipeline-quality-v2` (continued from prior session). **22 commits** total this session.
+**Branch:** `feat/pipeline-quality-v2` (continued from prior session). **23 commits** total this session.
 
-**Library is internally consistent.** Every scene appears in (a) its section README, (b) the master lookup table in `examples/README.md`, (c) the rendered MP4 list, and (d) the Verse asset ID table below. The technique-pick checklist in step-3 has reliable coverage — an agent can find any of the 77 scenes from the lookup table without grepping the directory.
+**Library is internally consistent.** Every scene appears in (a) its section README, (b) the master lookup table in `examples/README.md`, (c) the rendered MP4 list, and (d) the Verse asset ID table below. The technique-pick checklist in step-3 has reliable coverage — an agent can find any of the 79 scenes from the lookup table without grepping the directory.
+
+### What batch 16 added (2 more composed-UI patterns)
+
+- **04-16 Notification Stack**: 4 shadcn-style toast notifications cascade in from the right (Success ✓ green / Info ℹ blue / Warning ! amber / Error × red) over a greyed-out app shell. Each has icon + title + message + timestamp + close button + auto-dismiss progress bar. After ~5s the first notification auto-dismisses (slides out right) and the stack collapses up.
+- **04-17 Loading States Showcase**: 6 loading-state UI patterns side-by-side — skeleton sweep, rotating spinner, progress bar with synced counter (0→78%), 3-dot pulser, circular SVG progress (stroke-dashoffset 0→65%), pulse card with dashed border. Each panel labeled + captioned. All 6 patterns fully seekable.
 
 ### What batch 15 added (3 more hand-authored scenes — common product-video patterns)
 
@@ -117,7 +122,7 @@ skills/website-to-hyperframes/examples/
 ├── 01-typography/              README.md + 11 scene dirs (~100K total)
 ├── 02-markers-and-emphasis/    README.md + 6 scene dirs
 ├── 03-easing-variety/          README.md + 3 scene dirs
-├── 04-composed-ui/             README.md + 15 scene dirs
+├── 04-composed-ui/             README.md + 17 scene dirs
 ├── 05-transitions-shader/      README.md + 3 scene dirs
 ├── 06-transitions-css/         README.md + 3 scene dirs
 ├── 07-html-in-canvas/          README.md + 5 scene dirs
@@ -144,7 +149,7 @@ skills/website-to-hyperframes/examples/
 
 ---
 
-## THE 77 SCENES — FULL INVENTORY
+## THE 79 SCENES — FULL INVENTORY
 
 ### Section 01 — Typography (11 scenes)
 
@@ -183,7 +188,7 @@ skills/website-to-hyperframes/examples/
 | `scene-02-easing-race` | 6s | 7 balls race the same track over same 2s duration — visceral easing-comparison teaching scene |
 | `scene-03-stagger-origin-showcase` | 6s | 4 panels with same 15 dots — `from: "start" / "center" / "edges" / "end"` side-by-side |
 
-### Section 04 — Composed UI (15 scenes)
+### Section 04 — Composed UI (17 scenes)
 
 | Scene | Duration | Technique |
 |-------|----------|-----------|
@@ -202,6 +207,8 @@ skills/website-to-hyperframes/examples/
 | `scene-13-design-inspector` | 9s | Figma-style design inspector — HEADLINE on left, panel with cycling Color/Font/Size values, stacked-absolute-span swap pattern (fully seekable) |
 | `scene-14-pricing-card-reveal` | 8s | 3-tier SaaS pricing — Starter / Pro (featured + "Most Popular" badge, $0→$29 counter) / Business (counter to $79). Featured card uses different motion shape for emphasis. |
 | `scene-15-testimonial-card` | 8s | Customer testimonial — Fraunces italic quote + MJ avatar + Northshore company logo + 5-star rating cascade. Quote types word-by-word. |
+| `scene-16-notification-stack` | 8s | 4 shadcn-style toast notifications cascade in from right (success/info/warning/error) with auto-dismiss progress bars; first auto-dismisses + stack collapses |
+| `scene-17-loading-states` | 7s | 6 loading patterns side-by-side — skeleton / spinner / progress bar / 3-dot / circular / pulse — all seekable |
 
 ### Section 05 — Transitions Shader (2 scenes)
 
@@ -448,6 +455,8 @@ All 53 scenes rendered to MP4 at draft quality (24fps) and uploaded. URLs follow
 | scene-13-design-inspector | 2477d6d8-2748-42e4-9fd3-45d8d96c0bdb |
 | scene-14-pricing-card-reveal | 1c4cf975-301e-4d6d-b30e-8ca385ffaaa0 |
 | scene-15-testimonial-card | 1b56b2f2-841d-4c8c-ad69-7457c8a0f313 |
+| scene-16-notification-stack | 96518f68-b832-4938-ab89-33081115801e |
+| scene-17-loading-states | d325fe20-e831-474a-bf19-156a02449306 |
 
 ### Section 12 — Combined Vignettes
 | Scene | Asset ID |
@@ -463,7 +472,8 @@ All 53 scenes rendered to MP4 at draft quality (24fps) and uploaded. URLs follow
 ### Grand Tour Reel
 | Reel | Asset ID | Duration |
 |---|---|---|
-| grand-tour-77-scenes (current) | 417ac325-e606-48f1-b716-8f8747b44d87 | 8:52 |
+| grand-tour-79-scenes (current) | 12548e7f-205c-4144-a2be-4423c2ccc16c | 9:07 |
+| grand-tour-77-scenes (superseded) | 417ac325-e606-48f1-b716-8f8747b44d87 | 8:52 |
 | grand-tour-74-scenes (superseded) | aefd8761-7ae5-4399-bed4-3c33ea7dc3bf | 8:30 |
 | grand-tour-71-scenes (superseded) | 2637bc07-ef26-43f2-8ef3-83c21d7aad88 | 8:11 |
 | grand-tour-68-scenes (superseded) | bbe43a50-4eda-4fd9-b248-38c5ae73e64d | 7:50 |
@@ -667,10 +677,11 @@ batch_upload_assets supports up to 20 files at once. PUTs can run in parallel vi
 
 ---
 
-## THE 22 COMMITS
+## THE 23 COMMITS
 
 ```
-[pending]  feat(skill): examples library batch 15 — 3 hand-authored common-pattern scenes (77 scenes total)
+[pending]  feat(skill): examples library batch 16 — 2 composed-UI common patterns (79 scenes total)
+dbcd6508  feat(skill): examples library batch 15 — 3 hand-authored common-pattern scenes (77 scenes)
 9c667175  feat(skill): examples library batch 14 — 3 hand-authored gap-fillers (74 scenes)
 21cd7f9d  feat(skill): examples library batch 13 — 3 hand-authored gap-fillers (71 scenes)
 9513192b  feat(skill): examples library batch 12 — 3 hand-authored gap-fillers (68 scenes)
@@ -694,7 +705,7 @@ a877da70  feat(skill): examples library section 04 — composed UI, 8 scenes
 04827b98  feat(skill): examples library scaffold + section 01 (typography) — 10 scenes
 ```
 
-All on branch `feat/pipeline-quality-v2`, ahead of `origin/feat/pipeline-quality-v2` by 22 commits.
+All on branch `feat/pipeline-quality-v2`, ahead of `origin/feat/pipeline-quality-v2` by 23 commits.
 
 ### What batches 8 + 9 did (docs sync after batch 7)
 
