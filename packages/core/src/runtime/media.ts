@@ -152,7 +152,7 @@ export function syncRuntimeMedia(params: {
         }
       }
       const userVol = params.userVolume ?? 1;
-      el.volume = (clip.volume ?? 1) * userVol;
+      el.volume = Math.max(0, Math.min(1, (clip.volume ?? 1) * userVol));
       if (shouldMute) el.muted = true;
       // Ensure full preload for every active media element. Streaming
       // formats (MP3) may arrive with preload="metadata", which only

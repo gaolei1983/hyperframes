@@ -109,7 +109,7 @@ export class ParentMediaManager {
   }
 
   updateVolume(volume: number): void {
-    for (const m of this._entries) m.el.volume = volume;
+    for (const m of this._entries) m.el.volume = Math.max(0, Math.min(1, volume));
   }
 
   updatePlaybackRate(rate: number): void {
@@ -249,7 +249,7 @@ export class ParentMediaManager {
     el.src = src;
     el.load();
     el.muted = this._getMuted();
-    el.volume = this._getVolume();
+    el.volume = Math.max(0, Math.min(1, this._getVolume()));
     const rate = this._getPlaybackRate();
     if (rate !== 1) el.playbackRate = rate;
 
