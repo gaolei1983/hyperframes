@@ -2,6 +2,18 @@ import type { RuntimePlayer, RuntimeTimelineLike } from "./types";
 import { quantizeTimeToFrame } from "../inline-scripts/parityContract";
 import { swallow } from "./diagnostics";
 
+/** Safely read `.time()` from a timeline that may not fully conform to the interface. */
+function safeTimelineTime(tl: RuntimeTimelineLike | null | undefined): number {
+  if (!tl || typeof tl.time !== "function") return 0;
+  return Math.max(0, Number(tl.time()) || 0);
+}
+
+/** Safely read `.duration()` from a timeline that may not fully conform to the interface. */
+function safeTimelineDuration(tl: RuntimeTimelineLike | null | undefined): number {
+  if (!tl || typeof tl.duration !== "function") return 0;
+  return Math.max(0, Number(tl.duration()) || 0);
+}
+
 type PlayerDeps = {
   getTimeline: () => RuntimeTimelineLike | null;
   setTimeline: (timeline: RuntimeTimelineLike | null) => void;
@@ -103,10 +115,10 @@ export function createRuntimePlayer(deps: PlayerDeps): RuntimePlayer {
       if (!timeline || deps.getIsPlaying()) return;
       const safeDuration = Math.max(
         0,
-        Number(deps.getSafeDuration?.() ?? timeline.duration() ?? 0) || 0,
+        Number(deps.getSafeDuration?.() ?? safeTimelineDuration(timeline)) || 0,
       );
       if (safeDuration > 0) {
-        const currentTime = Math.max(0, Number(timeline.time()) || 0);
+        const currentTime = safeTimelineTime(timeline);
         if (currentTime >= safeDuration) {
           timeline.pause();
           timeline.seek(0, false);
@@ -136,7 +148,7 @@ export function createRuntimePlayer(deps: PlayerDeps): RuntimePlayer {
       forEachSiblingTimeline(deps.getTimelineRegistry?.(), timeline, (tl) => {
         tl.pause();
       });
-      const time = Math.max(0, Number(timeline.time()) || 0);
+      const time = safeTimelineTime(timeline);
       deps.onDeterministicSeek(time);
       deps.onDeterministicPause();
       deps.setIsPlaying(false);
@@ -199,8 +211,8 @@ export function createRuntimePlayer(deps: PlayerDeps): RuntimePlayer {
       deps.onRenderFrameSeek(quantized);
       deps.onStatePost(true);
     },
-    getTime: () => Number(deps.getTimeline()?.time() ?? 0),
-    getDuration: () => Number(deps.getTimeline()?.duration() ?? 0),
+    getTime: () => safeTimelineTime(deps.getTimeline()),
+    getDuration: () => safeTimelineDuration(deps.getTimeline()),
     isPlaying: () => deps.getIsPlaying(),
     setPlaybackRate: (rate: number) => deps.setPlaybackRate(rate),
     getPlaybackRate: () => deps.getPlaybackRate(),

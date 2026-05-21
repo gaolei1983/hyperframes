@@ -535,5 +535,65 @@ describe("createRuntimePlayer", () => {
       const player = createRuntimePlayer(deps);
       expect(player.getPlaybackRate()).toBe(2);
     });
+
+    it("getTime returns 0 when timeline object lacks .time method", () => {
+      const broken = {
+        play: vi.fn(),
+        pause: vi.fn(),
+        seek: vi.fn(),
+        add: vi.fn(),
+        paused: vi.fn(),
+        set: vi.fn(),
+        duration: vi.fn(() => 10),
+      } as unknown as RuntimeTimelineLike;
+      const deps = createMockDeps(broken);
+      const player = createRuntimePlayer(deps);
+      expect(player.getTime()).toBe(0);
+    });
+
+    it("getDuration returns 0 when timeline object lacks .duration method", () => {
+      const broken = {
+        play: vi.fn(),
+        pause: vi.fn(),
+        seek: vi.fn(),
+        add: vi.fn(),
+        paused: vi.fn(),
+        set: vi.fn(),
+        time: vi.fn(() => 5),
+      } as unknown as RuntimeTimelineLike;
+      const deps = createMockDeps(broken);
+      const player = createRuntimePlayer(deps);
+      expect(player.getDuration()).toBe(0);
+    });
+
+    it("play does not crash when timeline lacks .time and .duration methods", () => {
+      const broken = {
+        play: vi.fn(),
+        pause: vi.fn(),
+        seek: vi.fn(),
+        add: vi.fn(),
+        paused: vi.fn(),
+        set: vi.fn(),
+      } as unknown as RuntimeTimelineLike;
+      const deps = createMockDeps(broken);
+      deps.getSafeDuration.mockReturnValue(0);
+      const player = createRuntimePlayer(deps);
+      expect(() => player.play()).not.toThrow();
+    });
+
+    it("pause does not crash when timeline lacks .time method", () => {
+      const broken = {
+        play: vi.fn(),
+        pause: vi.fn(),
+        seek: vi.fn(),
+        add: vi.fn(),
+        paused: vi.fn(),
+        set: vi.fn(),
+      } as unknown as RuntimeTimelineLike;
+      const deps = createMockDeps(broken);
+      const player = createRuntimePlayer(deps);
+      expect(() => player.pause()).not.toThrow();
+      expect(deps.onDeterministicSeek).toHaveBeenCalledWith(0);
+    });
   });
 });
