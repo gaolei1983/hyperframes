@@ -250,6 +250,79 @@ describe("bundleToSingleHtml", () => {
     expect(hostEl?.hasAttribute("data-composition-src")).toBe(false);
   });
 
+  it("inlines local scripts referenced by sub-compositions into the bundle", async () => {
+    const dir = makeTempProject({
+      "index.html": `<!doctype html>
+<html><head>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+</head><body>
+  <div id="root" data-composition-id="main" data-width="1920" data-height="1080">
+    <div id="scene-host"
+      data-composition-id="scene"
+      data-composition-src="compositions/scene.html"
+      data-start="0" data-duration="5"></div>
+  </div>
+  <script>window.__timelines={}; const tl=gsap.timeline({paused:true}); window.__timelines["main"]=tl;</script>
+</body></html>`,
+      "compositions/scene.html": `<template id="scene-template">
+  <div data-composition-id="scene" data-width="1920" data-height="1080">
+    <div id="scene-copy">Scene</div>
+    <script src="vendor/effect-plugin.js"></script>
+    <script src="assets/scene-runtime.js"></script>
+    <script>
+      window.__timelines = window.__timelines || {};
+      window.__timelines["scene"] = gsap.timeline({ paused: true });
+    </script>
+  </div>
+</template>`,
+      "vendor/effect-plugin.js": `window.PowerGlitch = { glitch(){ return { startGlitch(){}, stopGlitch(){} }; } };`,
+      "assets/scene-runtime.js": `window.__HF_SHARED_TEST__ = "shared-runtime-loaded";`,
+    });
+
+    const bundled = await bundleToSingleHtml(dir);
+
+    expect(bundled).toContain('__HF_SHARED_TEST__ = "shared-runtime-loaded"');
+    expect(bundled).toContain("window.PowerGlitch = { glitch()");
+    expect(bundled).not.toContain('src="assets/scene-runtime.js"');
+    expect(bundled).not.toContain('src="vendor/effect-plugin.js"');
+  });
+
+  it("preserves local sub-composition script order before inline scene scripts", async () => {
+    const dir = makeTempProject({
+      "index.html": `<!doctype html>
+<html><head>
+  <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+</head><body>
+  <div id="root" data-composition-id="main" data-width="1920" data-height="1080">
+    <div
+      id="scene-host"
+      data-composition-id="scene"
+      data-composition-src="compositions/scene.html"
+      data-start="0" data-duration="5"></div>
+  </div>
+  <script>window.__timelines={}; const tl=gsap.timeline({paused:true}); window.__timelines["main"]=tl;</script>
+</body></html>`,
+      "compositions/scene.html": `<template id="scene-template">
+  <div data-composition-id="scene" data-width="1920" data-height="1080">
+    <script src="assets/component-runtime.js"></script>
+    <script>
+      window.__HF_COMPONENT_CALL__ = true;
+      window.Component.mount("#scene-host");
+    </script>
+  </div>
+</template>`,
+      "assets/component-runtime.js": `window.__HF_COMPONENT_DEF__ = true; window.Component = { mount(){ window.__HF_COMPONENT_MOUNTED__ = true; } };`,
+    });
+
+    const bundled = await bundleToSingleHtml(dir);
+    const componentIndex = bundled.indexOf("__HF_COMPONENT_DEF__");
+    const sceneIndex = bundled.indexOf("__HF_COMPONENT_CALL__");
+
+    expect(componentIndex).toBeGreaterThan(-1);
+    expect(sceneIndex).toBeGreaterThan(-1);
+    expect(componentIndex).toBeLessThan(sceneIndex);
+  });
+
   it("does not duplicate CDN scripts already present in the main document", async () => {
     const dir = makeTempProject({
       "index.html": `<!doctype html>
@@ -685,7 +758,8 @@ describe("bundleToSingleHtml", () => {
     expect(bundled).toContain('[data-composition-id="scene"] .title { color: red; }');
     expect(bundled).toContain("new Proxy(window.document");
     expect(bundled).toContain("new Proxy(__hfBaseGsap");
-    expect(bundled).toContain('tl.to(".title"');
+    expect(bundled).toContain('Function("document", "gsap", "window", "__hyperframes",');
+    expect(bundled).toContain("tl.to('.title'");
   });
 
   it("isolates sibling instances of the same external sub-composition", async () => {

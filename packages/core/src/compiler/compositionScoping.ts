@@ -216,6 +216,7 @@ export function wrapScopedCompositionScript(
   const authoredRootIdFormsLiteral = JSON.stringify(
     getAuthoredRootIdSelectorForms(authoredRootId?.trim() || ""),
   );
+  const sourceLiteral = JSON.stringify(source);
   return `(function(){
   var __hfCompId = ${compositionIdLiteral};
   var __hfTimelineCompId = ${timelineCompositionIdLiteral};
@@ -485,9 +486,8 @@ export function wrapScopedCompositionScript(
       });
   var __hfRun = function() {
     try {
-      (function(document, gsap, window, __hyperframes) {
-${source}
-      }).call(window, __hfScopedDocument, __hfScopedGsap, __hfScopedWindow, __hfScopedHyperframes);
+      var __hfScript = Function("document", "gsap", "window", "__hyperframes", ${sourceLiteral});
+      __hfScript.call(window, __hfScopedDocument, __hfScopedGsap, __hfScopedWindow, __hfScopedHyperframes);
     } catch (_err) {
       console.error(__hfErrorLabel, __hfCompId, _err);
     }
@@ -495,4 +495,8 @@ ${source}
   __hfFindRoot();
   __hfRun();
 })();`;
+}
+
+export function wrapInlineScriptWithErrorBoundary(source: string, errorLabel: string): string {
+  return `(function(){ try { Function(${JSON.stringify(source)}).call(window); } catch (_err) { console.error(${JSON.stringify(errorLabel)}, _err); } })();`;
 }

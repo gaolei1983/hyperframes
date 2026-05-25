@@ -8,7 +8,11 @@ import {
   stripEmbeddedRuntimeScripts,
 } from "./htmlDocument";
 // rewriteSubCompPaths functions are used by inlineSubCompositions (shared module)
-import { scopeCssToComposition, wrapScopedCompositionScript } from "./compositionScoping";
+import {
+  scopeCssToComposition,
+  wrapInlineScriptWithErrorBoundary,
+  wrapScopedCompositionScript,
+} from "./compositionScoping";
 import { validateHyperframeHtmlContract } from "./staticGuard";
 import { getHyperframeRuntimeScript } from "../generated/runtime-inline";
 import { readDeclaredDefaults } from "../runtime/getVariables";
@@ -718,12 +722,34 @@ export async function bundleToSingleHtml(
     },
   });
   const compStyleChunks: string[] = [...subCompResult.styles];
-  const compScriptChunks: string[] = [...subCompResult.scripts];
-  const compExternalScriptSrcs: string[] = [...subCompResult.externalScriptSrcs];
+  const compScriptChunks: string[] = [];
   const compExternalLinks = [...subCompResult.externalLinks];
   const compVariablesByComp: Record<string, Record<string, unknown>> = {
     ...subCompResult.variablesByComp,
   };
+  const seenCompScriptSrcs = new Set<string>();
+  for (const scriptItem of subCompResult.scriptItems) {
+    if (scriptItem.kind === "inline") {
+      compScriptChunks.push(scriptItem.content);
+      continue;
+    }
+    const extSrc = scriptItem.src;
+    if (seenCompScriptSrcs.has(extSrc)) continue;
+    seenCompScriptSrcs.add(extSrc);
+    if (isRelativeUrl(extSrc)) {
+      const jsPath = safePath(projectDir, extSrc);
+      const js = jsPath ? safeReadFile(jsPath) : null;
+      if (js != null) {
+        compScriptChunks.push(js);
+        continue;
+      }
+    }
+    if (!document.querySelector(`script[src="${extSrc}"]`)) {
+      const extScript = document.createElement("script");
+      extScript.setAttribute("src", extSrc);
+      document.body.appendChild(extScript);
+    }
+  }
 
   // Inline template compositions: inject <template id="X-template"> content into
   // matching empty host elements with data-composition-id="X" (no data-composition-src)
@@ -773,8 +799,23 @@ export async function bundleToSingleHtml(
         for (const scriptEl of [...innerRoot.querySelectorAll("script")]) {
           const externalSrc = (scriptEl.getAttribute("src") || "").trim();
           if (externalSrc) {
-            if (!compExternalScriptSrcs.includes(externalSrc)) {
-              compExternalScriptSrcs.push(externalSrc);
+            if (!seenCompScriptSrcs.has(externalSrc)) {
+              seenCompScriptSrcs.add(externalSrc);
+              if (isRelativeUrl(externalSrc)) {
+                const jsPath = safePath(projectDir, externalSrc);
+                const js = jsPath ? safeReadFile(jsPath) : null;
+                if (js != null) {
+                  compScriptChunks.push(js);
+                } else if (!document.querySelector(`script[src="${externalSrc}"]`)) {
+                  const extScript = document.createElement("script");
+                  extScript.setAttribute("src", externalSrc);
+                  document.body.appendChild(extScript);
+                }
+              } else if (!document.querySelector(`script[src="${externalSrc}"]`)) {
+                const extScript = document.createElement("script");
+                extScript.setAttribute("src", externalSrc);
+                document.body.appendChild(extScript);
+              }
             }
           } else {
             compScriptChunks.push(
@@ -787,7 +828,10 @@ export async function bundleToSingleHtml(
                     runtimeCompId || compId,
                     authoredRootId,
                   )
-                : `(function(){ try { ${scriptEl.textContent || ""} } catch (_err) { console.error('[HyperFrames] composition script error:', _err); } })();`,
+                : wrapInlineScriptWithErrorBoundary(
+                    scriptEl.textContent || "",
+                    "[HyperFrames] composition script error:",
+                  ),
             );
           }
           scriptEl.remove();
@@ -810,8 +854,23 @@ export async function bundleToSingleHtml(
         for (const scriptEl of [...innerDoc.querySelectorAll("script")]) {
           const externalSrc = (scriptEl.getAttribute("src") || "").trim();
           if (externalSrc) {
-            if (!compExternalScriptSrcs.includes(externalSrc)) {
-              compExternalScriptSrcs.push(externalSrc);
+            if (!seenCompScriptSrcs.has(externalSrc)) {
+              seenCompScriptSrcs.add(externalSrc);
+              if (isRelativeUrl(externalSrc)) {
+                const jsPath = safePath(projectDir, externalSrc);
+                const js = jsPath ? safeReadFile(jsPath) : null;
+                if (js != null) {
+                  compScriptChunks.push(js);
+                } else if (!document.querySelector(`script[src="${externalSrc}"]`)) {
+                  const extScript = document.createElement("script");
+                  extScript.setAttribute("src", externalSrc);
+                  document.body.appendChild(extScript);
+                }
+              } else if (!document.querySelector(`script[src="${externalSrc}"]`)) {
+                const extScript = document.createElement("script");
+                extScript.setAttribute("src", externalSrc);
+                document.body.appendChild(extScript);
+              }
             }
           } else {
             compScriptChunks.push(
@@ -823,7 +882,10 @@ export async function bundleToSingleHtml(
                     runtimeScope,
                     runtimeCompId || compId,
                   )
-                : `(function(){ try { ${scriptEl.textContent || ""} } catch (_err) { console.error('[HyperFrames] composition script error:', _err); } })();`,
+                : wrapInlineScriptWithErrorBoundary(
+                    scriptEl.textContent || "",
+                    "[HyperFrames] composition script error:",
+                  ),
             );
           }
           scriptEl.remove();
@@ -839,14 +901,6 @@ export async function bundleToSingleHtml(
 
   // Inject external scripts from sub-compositions (e.g., Lottie CDN)
   // that aren't already present in the main document.
-  for (const extSrc of compExternalScriptSrcs) {
-    if (!document.querySelector(`script[src="${extSrc}"]`)) {
-      const extScript = document.createElement("script");
-      extScript.setAttribute("src", extSrc);
-      document.body.appendChild(extScript);
-    }
-  }
-
   for (const link of compExternalLinks) {
     const escapedHref = link.href.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
     if (!document.querySelector(`link[href="${escapedHref}"]`)) {
