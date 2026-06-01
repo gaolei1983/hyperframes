@@ -238,11 +238,6 @@ export function useDomEditSession({
 
   // ── Commit handlers (delegated to useDomEditCommits) ──
 
-  const gsapPositionCommitCallbacks = useMemo(
-    () => (gsapCommitMutation ? { commitMutation: gsapCommitMutation } : null),
-    [gsapCommitMutation],
-  );
-
   const {
     resolveImportedFontAsset,
     handleDomStyleCommit,
@@ -278,8 +273,6 @@ export function useDomEditSession({
     clearDomSelection,
     refreshDomEditSelectionFromPreview,
     buildDomSelectionFromTarget,
-    selectedGsapAnimations,
-    gsapPositionCommitCallbacks,
   });
 
   const handleGsapUpdateProperty = useCallback(
