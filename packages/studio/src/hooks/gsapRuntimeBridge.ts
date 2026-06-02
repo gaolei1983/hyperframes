@@ -54,6 +54,7 @@ function readGsapPositionFromIframe(
 
 // fallow-ignore-next-line complexity
 function findGsapPositionAnimation(animations: GsapAnimation[]): GsapAnimation | null {
+  // Prefer animations that already have x/y
   for (const anim of animations) {
     if (anim.keyframes) {
       const hasPos = anim.keyframes.keyframes.some(
@@ -61,7 +62,6 @@ function findGsapPositionAnimation(animations: GsapAnimation[]): GsapAnimation |
       );
       if (hasPos) return anim;
     }
-
     const props = anim.properties;
     const fromProps = anim.fromProperties;
     if (anim.method === "fromTo") {
@@ -72,7 +72,12 @@ function findGsapPositionAnimation(animations: GsapAnimation[]): GsapAnimation |
       return anim;
     }
   }
-  return null;
+  // Fall back to any keyframed animation — drag will add x/y to it
+  for (const anim of animations) {
+    if (anim.keyframes) return anim;
+  }
+  // Fall back to any animation — will be converted to keyframes
+  return animations[0] ?? null;
 }
 
 // ── Selector resolution ────────────────────────────────────────────────────

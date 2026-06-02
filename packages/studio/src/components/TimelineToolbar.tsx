@@ -6,8 +6,41 @@ import { getTimelineToggleTitle } from "../utils/timelineDiscovery";
 import { usePlayerStore } from "../player";
 import { STUDIO_KEYFRAMES_ENABLED } from "./editor/manualEditingAvailability";
 import { Tooltip } from "./ui";
-import type { GsapAnimation } from "@hyperframes/core/gsap-parser";
+import type { GsapAnimation, GsapPercentageKeyframe } from "@hyperframes/core/gsap-parser";
 import type { DomEditSelection } from "./editor/domEditingTypes";
+
+function interpolateKeyframeProperties(
+  keyframes: GsapPercentageKeyframe[],
+  pct: number,
+): Record<string, number> {
+  const sorted = keyframes.slice().sort((a, b) => a.percentage - b.percentage);
+  const allProps = new Set<string>();
+  for (const kf of sorted) {
+    for (const p of Object.keys(kf.properties)) {
+      if (typeof kf.properties[p] === "number") allProps.add(p);
+    }
+  }
+  const result: Record<string, number> = {};
+  for (const prop of allProps) {
+    let prev: { pct: number; val: number } | null = null;
+    let next: { pct: number; val: number } | null = null;
+    for (const kf of sorted) {
+      const v = kf.properties[prop];
+      if (typeof v !== "number") continue;
+      if (kf.percentage <= pct) prev = { pct: kf.percentage, val: v };
+      if (kf.percentage >= pct && !next) next = { pct: kf.percentage, val: v };
+    }
+    if (prev && next && prev.pct !== next.pct) {
+      const t = (pct - prev.pct) / (next.pct - prev.pct);
+      result[prop] = Math.round(prev.val + t * (next.val - prev.val));
+    } else if (prev) {
+      result[prop] = Math.round(prev.val);
+    } else if (next) {
+      result[prop] = Math.round(next.val);
+    }
+  }
+  return result;
+}
 
 interface DomEditSessionSlice {
   domEditSelection: DomEditSelection | null;
@@ -62,6 +95,11 @@ function useKeyframeToggle(session?: DomEditSessionSlice) {
           );
           if (existing) {
             session.handleGsapRemoveKeyframe(kfAnim.id, existing.percentage);
+          } else {
+            const interpolated = interpolateKeyframeProperties(kfAnim.keyframes.keyframes, pct);
+            for (const [prop, val] of Object.entries(interpolated)) {
+              session.handleGsapAddKeyframe(kfAnim.id, pct, prop, val);
+            }
           }
         } else if (flatAnim) {
           session.handleGsapConvertToKeyframes(flatAnim.id);
