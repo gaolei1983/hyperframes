@@ -83,28 +83,28 @@ export function BorderRadiusEditor({
             cx={sTL}
             cy={sTL}
             r={3}
-            fill={linked ? "#3b82f6" : "#a78bfa"}
+            fill={linked ? "#3CE6AC" : "#52525B"}
             className="cursor-pointer"
           />
           <circle
             cx={PREVIEW_W - sTR}
             cy={sTR}
             r={3}
-            fill={linked ? "#3b82f6" : "#a78bfa"}
+            fill={linked ? "#3CE6AC" : "#52525B"}
             className="cursor-pointer"
           />
           <circle
             cx={PREVIEW_W - sBR}
             cy={PREVIEW_H - sBR}
             r={3}
-            fill={linked ? "#3b82f6" : "#a78bfa"}
+            fill={linked ? "#3CE6AC" : "#52525B"}
             className="cursor-pointer"
           />
           <circle
             cx={sBL}
             cy={PREVIEW_H - sBL}
             r={3}
-            fill={linked ? "#3b82f6" : "#a78bfa"}
+            fill={linked ? "#3CE6AC" : "#52525B"}
             className="cursor-pointer"
           />
         </svg>

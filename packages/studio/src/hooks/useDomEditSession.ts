@@ -244,6 +244,7 @@ export function useDomEditSession({
     STUDIO_GSAP_PANEL_ENABLED ? (projectId ?? null) : null,
     gsapSourceFile,
     gsapCacheVersion,
+    previewIframeRef,
   );
 
   const {
@@ -274,6 +275,8 @@ export function useDomEditSession({
     removeKeyframe,
     convertToKeyframes,
     removeAllKeyframes,
+    setArcPath,
+    updateArcSegment,
   } = useGsapScriptCommits({
     projectIdRef,
     activeCompPath,
@@ -464,6 +467,22 @@ export function useDomEditSession({
     bumpGsapCache,
   });
 
+  const handleSetArcPath = useCallback(
+    (animId: string, config: Parameters<typeof setArcPath>[2]) => {
+      if (!domEditSelection) return;
+      setArcPath(domEditSelection, animId, config);
+    },
+    [domEditSelection, setArcPath],
+  );
+
+  const handleUpdateArcSegment = useCallback(
+    (animId: string, segmentIndex: number, update: Parameters<typeof updateArcSegment>[3]) => {
+      if (!domEditSelection) return;
+      updateArcSegment(domEditSelection, animId, segmentIndex, update);
+    },
+    [domEditSelection, updateArcSegment],
+  );
+
   // Sync selection from preview document on load / refresh
   // eslint-disable-next-line no-restricted-syntax
   useEffect(() => {
@@ -609,6 +628,8 @@ export function useDomEditSession({
     handleGsapRemoveAllKeyframes,
     handleResetSelectedElementKeyframes,
     commitAnimatedProperty,
+    handleSetArcPath,
+    handleUpdateArcSegment,
     invalidateGsapCache: bumpGsapCache,
     previewIframeRef,
   };

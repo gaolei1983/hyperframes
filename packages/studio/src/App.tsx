@@ -514,6 +514,7 @@ export function StudioApp() {
                 refreshCaptureFrameTime={frameCapture.refreshCaptureFrameTime}
                 inspectorButtonActive={inspectorButtonActive}
                 inspectorPanelActive={inspectorPanelActive}
+                onExport={() => void renderQueue.startRender()}
               />
 
               <div className="flex flex-1 min-h-0">

@@ -502,6 +502,60 @@ export function useGsapScriptCommits({
     [commitMutation],
   );
 
+  const setArcPath = useCallback(
+    (
+      selection: DomEditSelection,
+      animationId: string,
+      config: {
+        enabled: boolean;
+        autoRotate?: boolean | number;
+        segments?: Array<{
+          curviness: number;
+          cp1?: { x: number; y: number };
+          cp2?: { x: number; y: number };
+        }>;
+      },
+    ) => {
+      void commitMutation(
+        selection,
+        { type: "set-arc-path" as const, animationId, ...config },
+        { label: config.enabled ? "Enable arc path" : "Disable arc path", softReload: true },
+      );
+    },
+    [commitMutation],
+  );
+
+  const updateArcSegment = useCallback(
+    (
+      selection: DomEditSelection,
+      animationId: string,
+      segmentIndex: number,
+      update: {
+        curviness?: number;
+        cp1?: { x: number; y: number };
+        cp2?: { x: number; y: number };
+      },
+    ) => {
+      void commitMutation(
+        selection,
+        { type: "update-arc-segment" as const, animationId, segmentIndex, ...update },
+        { label: "Update arc segment", softReload: true },
+      );
+    },
+    [commitMutation],
+  );
+
+  const removeArcPath = useCallback(
+    (selection: DomEditSelection, animationId: string) => {
+      void commitMutation(
+        selection,
+        { type: "remove-arc-path" as const, animationId },
+        { label: "Remove arc path", softReload: true },
+      );
+    },
+    [commitMutation],
+  );
+
   return {
     commitMutation,
     updateGsapProperty,
@@ -517,5 +571,8 @@ export function useGsapScriptCommits({
     removeKeyframe,
     convertToKeyframes,
     removeAllKeyframes,
+    setArcPath,
+    updateArcSegment,
+    removeArcPath,
   };
 }

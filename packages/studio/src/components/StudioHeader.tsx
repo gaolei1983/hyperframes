@@ -17,6 +17,7 @@ export interface StudioHeaderProps {
   refreshCaptureFrameTime: () => void;
   inspectorButtonActive: boolean;
   inspectorPanelActive: boolean;
+  onExport?: () => void;
 }
 
 function HyperframesLogo() {
@@ -147,6 +148,7 @@ export function StudioHeader({
   refreshCaptureFrameTime,
   inspectorButtonActive,
   inspectorPanelActive,
+  onExport,
 }: StudioHeaderProps) {
   const { projectId, editHistory, handleUndo, handleRedo } = useStudioContext();
   const { rightCollapsed, setRightCollapsed, setRightPanelTab } = usePanelLayoutContext();
@@ -263,6 +265,17 @@ export function StudioHeader({
             <polygon points="10 8 16 12 10 16" fill="currentColor" stroke="none" />
           </svg>
           Inspector
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setRightPanelTab("renders");
+            setRightCollapsed(false);
+            onExport?.();
+          }}
+          className="h-7 flex items-center gap-1.5 px-3 rounded-md text-[11px] font-semibold bg-studio-accent text-[#09090B] hover:brightness-110 transition-colors"
+        >
+          Export
         </button>
       </div>
     </div>

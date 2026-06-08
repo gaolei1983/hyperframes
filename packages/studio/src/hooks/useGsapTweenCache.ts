@@ -213,12 +213,14 @@ export function usePopulateKeyframeCacheForFile(
   const lastFetchKeyRef = useRef("");
 
   const runtimeScanDoneRef = useRef("");
+  const astFetchDoneRef = useRef("");
 
   useEffect(() => {
     const fetchKey = `kf-cache:${projectId}:${sourceFile}:${version}`;
     if (fetchKey === lastFetchKeyRef.current) return;
     lastFetchKeyRef.current = fetchKey;
     runtimeScanDoneRef.current = "";
+    astFetchDoneRef.current = "";
     if (!projectId) return;
 
     const sf = sourceFile;
@@ -236,9 +238,10 @@ export function usePopulateKeyframeCacheForFile(
         const id = extractIdFromSelector(anim.targetSelector);
         if (!id || !anim.keyframes) continue;
         setKeyframeCache(`${sf}#${id}`, anim.keyframes);
+        setKeyframeCache(id, anim.keyframes);
         if (sf !== "index.html") setKeyframeCache(`index.html#${id}`, anim.keyframes);
       }
-      runtimeScanDoneRef.current = fetchKey;
+      astFetchDoneRef.current = fetchKey;
     });
   }, [projectId, sourceFile, version]);
 
@@ -253,7 +256,8 @@ export function usePopulateKeyframeCacheForFile(
 
     const tryRuntimeScan = () => {
       if (runtimeScanDoneRef.current === `kf-cache:${projectId}:${sf}:${version}`) return true;
-      const iframe = iframeRef?.current;
+      const iframe =
+        iframeRef?.current ?? document.querySelector<HTMLIFrameElement>("iframe[src*='/preview/']");
       if (!iframe) return false;
       const scanned = scanAllRuntimeKeyframes(iframe);
       if (scanned.size === 0) return false;
@@ -261,7 +265,8 @@ export function usePopulateKeyframeCacheForFile(
       for (const [id, data] of scanned) {
         const cacheKey = `${sf}#${id}`;
         const fallbackKey = `index.html#${id}`;
-        if (keyframeCache.has(cacheKey) || keyframeCache.has(fallbackKey)) continue;
+        if (keyframeCache.has(cacheKey) || keyframeCache.has(fallbackKey) || keyframeCache.has(id))
+          continue;
         const entry = {
           format: "percentage" as const,
           keyframes: data.keyframes,
@@ -269,6 +274,7 @@ export function usePopulateKeyframeCacheForFile(
         };
         setKeyframeCache(cacheKey, entry);
         if (sf !== "index.html") setKeyframeCache(fallbackKey, entry);
+        setKeyframeCache(id, entry);
       }
       runtimeScanDoneRef.current = `kf-cache:${projectId}:${sf}:${version}`;
       return true;

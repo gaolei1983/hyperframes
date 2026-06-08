@@ -7,7 +7,12 @@ import {
 } from "../core.types";
 import type { GsapAnimation } from "../parsers/gsapParser";
 import { serializeGsapAnimations, keyframesToGsapAnimations } from "../parsers/gsapParser";
-import { GSAP_CDN, BASE_STYLES, ZOOM_CONTAINER_STYLES } from "../templates/constants";
+import {
+  GSAP_CDN,
+  MOTIONPATH_CDN,
+  BASE_STYLES,
+  ZOOM_CONTAINER_STYLES,
+} from "../templates/constants";
 
 const GOOGLE_FONTS_BASE = "https://fonts.googleapis.com/css2";
 const FONT_WEIGHTS: Record<string, string> = {
@@ -337,6 +342,10 @@ export function generateHyperframesHtml(
     : "";
 
   const gsapCdnTag = includeScripts ? `  <script src="${GSAP_CDN}"></script>` : "";
+  const motionPathCdnTag =
+    includeScripts && gsapScript && /motionPath\s*[:{]/.test(gsapScript)
+      ? `\n  <script src="${MOTIONPATH_CDN}"></script>`
+      : "";
 
   const gsapScriptTag = includeScripts
     ? `  <script>
@@ -373,7 +382,7 @@ ${gsapScript}
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   ${includeStyles ? googleFontsLink : ""}
-  ${gsapCdnTag}
+  ${gsapCdnTag}${motionPathCdnTag}
 ${styleTags ? `  ${styleTags}` : ""}
 </head>
 <body>

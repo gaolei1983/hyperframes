@@ -113,7 +113,7 @@ export function EaseCurveSection({
         <button
           type="button"
           onClick={play}
-          className="rounded px-1.5 py-0.5 text-[10px] font-medium text-emerald-400 transition-colors hover:bg-emerald-500/10"
+          className="rounded px-1.5 py-0.5 text-[10px] font-medium text-panel-accent transition-colors hover:bg-panel-accent/10"
         >
           {progress !== null ? "Playing…" : "Preview"}
         </button>
@@ -165,17 +165,17 @@ export function EaseCurveSection({
             y1={end.y}
             x2={p2.x}
             y2={p2.y}
-            stroke="rgba(52,211,153,0.25)"
+            stroke="rgba(45,212,191,0.25)"
             strokeWidth="1"
           />
-          <path d={curvePath} fill="none" stroke="#34d399" strokeWidth="2" strokeLinecap="round" />
-          {progress !== null && <circle cx={dotX} cy={dotY} r="4" fill="#34d399" />}
+          <path d={curvePath} fill="none" stroke="#3CE6AC" strokeWidth="2" strokeLinecap="round" />
+          {progress !== null && <circle cx={dotX} cy={dotY} r="4" fill="#3CE6AC" />}
           <circle
             cx={p1.x}
             cy={p1.y}
             r="5"
             fill="#0a0a1a"
-            stroke="#34d399"
+            stroke="#3CE6AC"
             strokeWidth="2"
             className="cursor-grab active:cursor-grabbing"
             onPointerDown={(e) => handlePointerDown("p1", e)}
@@ -185,7 +185,7 @@ export function EaseCurveSection({
             cy={p2.y}
             r="5"
             fill="#0a0a1a"
-            stroke="#34d399"
+            stroke="#3CE6AC"
             strokeWidth="2"
             className="cursor-grab active:cursor-grabbing"
             onPointerDown={(e) => handlePointerDown("p2", e)}

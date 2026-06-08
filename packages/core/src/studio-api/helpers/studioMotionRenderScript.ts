@@ -58,6 +58,7 @@ function studioMotionRenderRuntime(
       registerPlugin?: (...plugins: unknown[]) => unknown;
     };
     CustomEase?: { create?: (id: string, data: string) => unknown };
+    MotionPathPlugin?: unknown;
     __player?: { getTime?: () => number };
     __timeline?: { time?: () => number };
     __timelines?: Record<
@@ -212,6 +213,9 @@ function studioMotionRenderRuntime(
     restoreStudioMotionElements();
     const gsap = runtimeWindow.gsap;
     if (!gsap?.timeline || manifestMotions.length === 0) return 0;
+    if (runtimeWindow.MotionPathPlugin) {
+      gsap.registerPlugin?.(runtimeWindow.MotionPathPlugin);
+    }
 
     const timeline = gsap.timeline({ paused: true, defaults: { overwrite: "auto" } });
     let applied = 0;

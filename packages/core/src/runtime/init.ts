@@ -1000,6 +1000,66 @@ export function initSandboxRuntimeModular(): void {
         mediaDurationFloorSeconds: resolution.mediaDurationFloorSeconds ?? null,
       },
     });
+    // Stamp data-start / data-duration on GSAP-targeted elements that lack
+    // them so the Studio timeline can discover individual animated elements.
+    // Skip elements whose ancestor already carries timing — stamping them
+    // would override the parent's clip visibility and cause preview/render
+    // parity drift.
+    {
+      const rootComp = resolveRootCompositionElement();
+      const rootDuration = boundDuration > 0 ? boundDuration : 0;
+      const dur = String(rootDuration > 0 ? rootDuration : 1);
+      const seen = new Set<Element>();
+
+      const hasTimedAncestor = (el: HTMLElement): boolean => {
+        let cursor = el.parentElement;
+        while (cursor) {
+          if (cursor.hasAttribute("data-start")) return true;
+          if (cursor === rootComp) return false;
+          cursor = cursor.parentElement;
+        }
+        return false;
+      };
+
+      // Stamp GSAP-targeted elements
+      if (state.capturedTimeline.getChildren) {
+        try {
+          for (const child of state.capturedTimeline.getChildren(true)) {
+            if (typeof child.targets !== "function") continue;
+            for (const target of child.targets()) {
+              if (!(target instanceof HTMLElement)) continue;
+              if (target === rootComp) continue;
+              if (target.hasAttribute("data-start")) continue;
+              if (hasTimedAncestor(target)) continue;
+              if (seen.has(target)) continue;
+              seen.add(target);
+              target.setAttribute("data-start", "0");
+              target.setAttribute("data-duration", dur);
+            }
+          }
+        } catch {
+          /* timeline access guard */
+        }
+      }
+
+      // Stamp all ID'd children of the composition root so they appear
+      // in the timeline even without animations. Enables selecting and
+      // adding animations from the design panel on a blank canvas.
+      if (rootComp instanceof HTMLElement) {
+        for (const el of rootComp.querySelectorAll("[id]")) {
+          if (!(el instanceof HTMLElement)) continue;
+          if (el === rootComp) continue;
+          if (el.hasAttribute("data-start")) continue;
+          if (hasTimedAncestor(el)) continue;
+          if (seen.has(el)) continue;
+          if (el.tagName === "SCRIPT" || el.tagName === "STYLE" || el.tagName === "LINK") continue;
+          seen.add(el);
+          el.setAttribute("data-start", "0");
+          el.setAttribute("data-duration", dur);
+        }
+      }
+    }
+
     // (Re-)probe all already-bound media elements against the new timeline.
     // Clear the cache first so elements probed against a prior timeline get fresh keyframes.
     for (const el of metadataBoundMedia) {
