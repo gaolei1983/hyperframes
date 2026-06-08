@@ -28,6 +28,36 @@ const SHORTCUT_SECTIONS = [
     ],
   },
   {
+    title: "Editing",
+    hints: [
+      { key: "⌘Z", label: "Undo" },
+      { key: "⌘⇧Z", label: "Redo" },
+      { key: "⌘C", label: "Copy element" },
+      { key: "⌘V", label: "Paste element" },
+      { key: "⌘X", label: "Cut element" },
+      { key: "S", label: "Split clip at playhead" },
+      { key: "Del", label: "Delete selected element" },
+    ],
+  },
+  {
+    title: "Gesture recording modifiers",
+    hints: [
+      { key: "Drag", label: "Record x / y position" },
+      { key: "Scroll", label: "Record z depth" },
+      { key: "⇧ Drag", label: "Record rotationX / rotationY" },
+      { key: "⌥ Drag", label: "Record rotation" },
+      { key: "⌘ Drag↕", label: "Record opacity" },
+      { key: "⌘ Scroll", label: "Record scale" },
+    ],
+  },
+  {
+    title: "Panels",
+    hints: [
+      { key: "⌘1", label: "Compositions tab" },
+      { key: "⌘2", label: "Assets tab" },
+    ],
+  },
+  {
     title: "Work area",
     hints: [
       { key: "I", label: "Set in-point" },

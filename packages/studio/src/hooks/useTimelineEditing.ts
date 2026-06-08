@@ -41,6 +41,7 @@ interface UseTimelineEditingOptions {
   previewIframeRef: React.RefObject<HTMLIFrameElement | null>;
   pendingTimelineEditPathRef: React.MutableRefObject<Set<string>>;
   uploadProjectFiles: (files: Iterable<File>, dir?: string) => Promise<string[]>;
+  isRecordingRef?: React.RefObject<boolean>;
 }
 
 // ── Helpers ──
@@ -174,6 +175,7 @@ export function useTimelineEditing({
   previewIframeRef,
   pendingTimelineEditPathRef,
   uploadProjectFiles,
+  isRecordingRef,
 }: UseTimelineEditingOptions) {
   const projectIdRef = useRef(projectId);
   projectIdRef.current = projectId;
@@ -187,6 +189,10 @@ export function useTimelineEditing({
       label: string,
       buildPatches: PersistTimelineEditInput["buildPatches"],
     ): Promise<void> => {
+      if (isRecordingRef?.current) {
+        showToast("Cannot edit timeline while recording", "error");
+        return Promise.resolve();
+      }
       const pid = projectIdRef.current;
       if (!pid) return Promise.resolve();
       const queued = editQueueRef.current.then(() =>
@@ -213,6 +219,8 @@ export function useTimelineEditing({
       writeProjectFile,
       domEditSaveTimestampRef,
       pendingTimelineEditPathRef,
+      showToast,
+      isRecordingRef,
     ],
   );
 
@@ -274,6 +282,10 @@ export function useTimelineEditing({
 
   const handleTimelineElementDelete = useCallback(
     async (element: TimelineElement) => {
+      if (isRecordingRef?.current) {
+        showToast("Cannot edit timeline while recording", "error");
+        return;
+      }
       const pid = projectIdRef.current;
       if (!pid) throw new Error("No active project");
       const label = getTimelineElementLabel(element);
@@ -338,6 +350,7 @@ export function useTimelineEditing({
       writeProjectFile,
       domEditSaveTimestampRef,
       reloadPreview,
+      isRecordingRef,
     ],
   );
 
@@ -347,6 +360,10 @@ export function useTimelineEditing({
       placement: Pick<TimelineElement, "start" | "track">,
       durationOverride?: number,
     ) => {
+      if (isRecordingRef?.current) {
+        showToast("Cannot edit timeline while recording", "error");
+        return;
+      }
       const pid = projectIdRef.current;
       if (!pid) throw new Error("No active project");
 
@@ -415,11 +432,16 @@ export function useTimelineEditing({
       writeProjectFile,
       domEditSaveTimestampRef,
       reloadPreview,
+      isRecordingRef,
     ],
   );
 
   const handleTimelineFileDrop = useCallback(
     async (files: File[], placement?: Pick<TimelineElement, "start" | "track">) => {
+      if (isRecordingRef?.current) {
+        showToast("Cannot edit timeline while recording", "error");
+        return;
+      }
       const pid = projectIdRef.current;
       if (!pid) return;
       const uploaded = await uploadProjectFiles(files);
@@ -453,7 +475,14 @@ export function useTimelineEditing({
         );
       }
     },
-    [activeCompPath, handleTimelineAssetDrop, timelineElements, uploadProjectFiles],
+    [
+      activeCompPath,
+      handleTimelineAssetDrop,
+      timelineElements,
+      uploadProjectFiles,
+      isRecordingRef,
+      showToast,
+    ],
   );
 
   const handleBlockedTimelineEdit = useCallback(
@@ -468,6 +497,10 @@ export function useTimelineEditing({
 
   const handleTimelineElementSplit = useCallback(
     async (element: TimelineElement, splitTime: number) => {
+      if (isRecordingRef?.current) {
+        showToast("Cannot edit timeline while recording", "error");
+        return;
+      }
       const pid = projectIdRef.current;
       if (!pid) return;
 
@@ -555,6 +588,7 @@ export function useTimelineEditing({
       writeProjectFile,
       domEditSaveTimestampRef,
       reloadPreview,
+      isRecordingRef,
     ],
   );
 

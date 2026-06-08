@@ -1167,6 +1167,7 @@ export function addAnimationWithKeyframesToScript(
     percentage: number;
     properties: Record<string, number | string>;
     ease?: string;
+    auto?: boolean;
   }>,
   ease?: string,
 ): { script: string; id: string } {
@@ -1187,6 +1188,7 @@ export function addAnimationWithKeyframesToScript(
       ([k, v]) => `${safeKey(k)}: ${valueToCode(v)}`,
     );
     if (kf.ease) propEntries.push(`ease: ${JSON.stringify(kf.ease)}`);
+    if (kf.auto) propEntries.push(`_auto: 1`);
     return `${JSON.stringify(`${kf.percentage}%`)}: { ${propEntries.join(", ")} }`;
   });
   const kfCode = `{ ${kfEntries.join(", ")} }`;
@@ -1400,6 +1402,24 @@ export function addKeyframeToScript(
       }
     }
     kfNode.properties.splice(insertIdx, 0, newProp);
+  }
+
+  // Auto-update 100%: if the 100% keyframe still has `_auto: 1` (never
+  // explicitly edited by the user), update it to match the new keyframe's
+  // values so the element holds its final position instead of snapping back.
+  // Once the user drags at 100%, `_auto` is gone and we stop touching it.
+  if (percentage < 100 && percentage !== 0) {
+    const pctProps = filterPercentageProps(kfNode);
+    const hundredProp = pctProps.find((p: any) => percentageFromKey(propKeyName(p) ?? "") === 100);
+    if (hundredProp?.value?.type === "ObjectExpression") {
+      const hasAuto = hundredProp.value.properties.some(
+        (p: any) => isObjectProperty(p) && propKeyName(p) === "_auto",
+      );
+      if (hasAuto) {
+        const updatedProps = { ...properties, _auto: 1 as number | string };
+        hundredProp.value = buildKeyframeValueNode(updatedProps, undefined);
+      }
+    }
   }
 
   // Backfill: when the new keyframe introduces properties absent from other

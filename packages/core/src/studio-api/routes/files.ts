@@ -681,6 +681,7 @@ export function registerFileRoutes(api: Hono, adapter: StudioApiAdapter): void {
           percentage: number;
           properties: Record<string, number | string>;
           ease?: string;
+          auto?: boolean;
         }>;
         ease?: string;
       };

@@ -37,6 +37,7 @@ import { StudioGlobalDragOverlay } from "./components/StudioGlobalDragOverlay";
 import { StudioHeader } from "./components/StudioHeader";
 import { useGestureRecording } from "./hooks/useGestureRecording";
 import { simplifyGestureSamples } from "./utils/rdpSimplify";
+
 import { GestureTrailOverlay } from "./components/editor/GestureTrailOverlay";
 import { StudioLeftSidebar } from "./components/StudioLeftSidebar";
 import { StudioPreviewArea } from "./components/StudioPreviewArea";
@@ -97,7 +98,6 @@ export function StudioApp() {
   const captionEditMode = useCaptionStore((s) => s.isEditMode);
   const captionHasSelection = useCaptionStore((s) => s.selectedSegmentIds.size > 0);
   const captionSync = useCaptionSync(projectId);
-  const currentTime = usePlayerStore((s) => s.currentTime);
   const timelineElements = usePlayerStore((s) => s.elements);
   const setSelectedTimelineElementId = usePlayerStore((s) => s.setSelectedElementId);
   const timelineDuration = usePlayerStore((s) => s.duration);
@@ -139,6 +139,7 @@ export function StudioApp() {
   const editHistory = usePersistentEditHistory({ projectId });
   const domEditSaveTimestampRef = useRef(0);
   const pendingTimelineEditPathRef = useRef(new Set<string>());
+  const isGestureRecordingRef = useRef(false);
   const reloadPreview = useCallback(() => {
     setRefreshKey((k) => k + 1);
   }, []);
@@ -188,6 +189,7 @@ export function StudioApp() {
     previewIframeRef,
     pendingTimelineEditPathRef,
     uploadProjectFiles: fileManager.uploadProjectFiles,
+    isRecordingRef: isGestureRecordingRef,
   });
 
   const blockCtx = useMemo(
@@ -311,7 +313,6 @@ export function StudioApp() {
     onAfterUndoRedo: () => invalidateGsapCacheRef.current(),
     onToggleRecording: () => handleToggleRecordingRef.current(),
   });
-  const handleToggleRecordingRef = useRef(() => {});
   const selectSidebarTabStable = useCallback(
     (tab: SidebarTab) => leftSidebarRef.current?.selectTab(tab),
     [],
@@ -330,7 +331,6 @@ export function StudioApp() {
     compositionLoading,
     previewIframeRef,
     timelineElements,
-    currentTime,
     setSelectedTimelineElementId,
     setRightCollapsed: panelLayout.setRightCollapsed,
     setRightPanelTab: panelLayout.setRightPanelTab,
@@ -408,71 +408,123 @@ export function StudioApp() {
   // Gesture recording
   const gestureRecording = useGestureRecording();
   const [gestureState, setGestureState] = useState<"idle" | "recording">("idle");
+  // Synchronous mirror of gestureState — immune to React batching.
+  // Prevents double-R-press within a single render cycle from swallowing the stop.
+  const gestureStateRef = useRef<"idle" | "recording">("idle");
   const recordingAutoStopRef = useRef<ReturnType<typeof setInterval>>(undefined);
   const recordingStartTimeRef = useRef(0);
+  const commitInFlightRef = useRef(false);
+  const handleToggleRecordingRef = useRef<() => void>(() => {});
+  const domEditSessionRef = useRef(domEditSession);
+  domEditSessionRef.current = domEditSession;
 
-  const stopAndCommitRecording = useCallback(() => {
+  // Unmount: clear auto-stop interval
+  useEffect(() => () => clearInterval(recordingAutoStopRef.current), []);
+
+  // fallow-ignore-next-line complexity
+  const stopAndCommitRecording = useCallback(async () => {
     clearInterval(recordingAutoStopRef.current);
-    gestureRecording.stopRecording();
+    if (commitInFlightRef.current) return;
+    commitInFlightRef.current = true;
+    gestureStateRef.current = "idle";
+    isGestureRecordingRef.current = false;
+    const frozenSamples = gestureRecording.stopRecording();
     const store = usePlayerStore.getState();
     store.setIsPlaying(false);
-
-    const sel = domEditSession.domEditSelection;
-    const animId = domEditSession.selectedGsapAnimations?.[0]?.id;
-    const samples = gestureRecording.samples;
-    const duration = gestureRecording.recordingDuration;
-
-    if (sel && animId && samples.length > 2 && duration > 0) {
-      const simplified = simplifyGestureSamples(samples, duration, 5);
-      const sortedPcts = Array.from(simplified.keys()).sort((a, b) => a - b);
-      for (const pct of sortedPcts) {
-        const props = simplified.get(pct);
-        if (!props) continue;
-        for (const [prop, value] of Object.entries(props)) {
-          domEditSession.handleGsapAddKeyframe?.(animId, pct, prop, value);
+    try {
+      const liveSession = domEditSessionRef.current;
+      const sel = liveSession.domEditSelection;
+      if (!sel) {
+        if (frozenSamples.length > 2) {
+          showToast("Selection lost during recording", "error");
         }
+        return;
+      }
+      const duration = frozenSamples.length > 0 ? frozenSamples[frozenSamples.length - 1]!.time : 0;
+
+      if (frozenSamples.length <= 2) {
+        showToast("No gesture detected — move the pointer while recording", "error");
+        return;
+      }
+      if (duration <= 0) {
+        showToast("Recording too short — try again", "error");
+        return;
+      }
+
+      const simplified = simplifyGestureSamples(frozenSamples, duration, 5);
+      const sortedPcts = Array.from(simplified.keys()).sort((a, b) => a - b);
+
+      // Always create a new tween scoped to the recording range.
+      // Injecting into an existing tween creates keyframes before the recording
+      // start (from the convert-to-keyframes step), causing wrong positions.
+      const selector = sel.id ? `#${sel.id}` : sel.selector;
+      if (!selector) {
+        showToast("Cannot save — element has no selector", "error");
+        return;
+      }
+      if (liveSession.commitMutation) {
+        const recStart = recordingStartTimeRef.current;
+        const keyframes = sortedPcts.map((pct) => ({
+          percentage: pct,
+          properties: simplified.get(pct) as Record<string, number | string>,
+        }));
+
+        await liveSession.commitMutation(
+          {
+            type: "add-with-keyframes",
+            targetSelector: selector,
+            position: Math.round(recStart * 1000) / 1000,
+            duration: Math.round(duration * 1000) / 1000,
+            keyframes,
+          },
+          { label: "Gesture recording", softReload: true },
+        );
       }
       showToast(`Recorded ${sortedPcts.length} keyframes`, "info");
+    } finally {
+      store.requestSeek(recordingStartTimeRef.current);
+      gestureRecording.clearSamples();
+      setGestureState("idle");
+      commitInFlightRef.current = false;
     }
-
-    store.requestSeek(recordingStartTimeRef.current);
-    gestureRecording.clearSamples();
-    setGestureState("idle");
-  }, [gestureRecording, domEditSession, showToast]);
+  }, [gestureRecording, showToast]);
 
   const handleToggleRecording = useCallback(() => {
-    if (gestureState === "recording") {
-      stopAndCommitRecording();
+    if (gestureStateRef.current === "recording") {
+      void stopAndCommitRecording();
       return;
     }
-    const sel = domEditSession.domEditSelection;
+    const sel = domEditSessionRef.current.domEditSelection;
     if (!sel) {
       showToast("Select an element first", "error");
       return;
     }
     const iframe = previewIframeRef.current;
-    if (!iframe) return;
+    if (!iframe) {
+      showToast("Preview not ready — try again", "error");
+      return;
+    }
 
     const store = usePlayerStore.getState();
     recordingStartTimeRef.current = store.currentTime;
-    gestureRecording.startRecording(sel.element, iframe);
-    store.setIsPlaying(true);
+    const elStart = Number.parseFloat(sel.dataAttributes?.start ?? "0") || 0;
+    const elDur = Number.parseFloat(sel.dataAttributes?.duration ?? "0") || 0;
+    const elementEnd = elDur > 0 ? elStart + elDur : undefined;
+    gestureRecording.startRecording(sel.element, iframe, elementEnd);
+    gestureStateRef.current = "recording";
+    isGestureRecordingRef.current = true;
     setGestureState("recording");
 
     clearInterval(recordingAutoStopRef.current);
+    const autoStopAt = elementEnd ?? Infinity;
     recordingAutoStopRef.current = setInterval(() => {
       const { currentTime: t, duration: d } = usePlayerStore.getState();
-      if (d > 0 && t >= d - 0.05) {
-        stopAndCommitRecording();
+      const limit = Math.min(autoStopAt, d);
+      if (limit > 0 && t >= limit - 0.05) {
+        void stopAndCommitRecording();
       }
     }, 100);
-  }, [
-    gestureState,
-    gestureRecording,
-    domEditSession.domEditSelection,
-    showToast,
-    stopAndCommitRecording,
-  ]);
+  }, [gestureRecording, showToast, stopAndCommitRecording]);
   handleToggleRecordingRef.current = handleToggleRecording;
 
   const handlePreviewIframeRef = useCallback(
@@ -510,12 +562,12 @@ export function StudioApp() {
     panelLayout.rightCollapsed,
     isPlaying,
     domEditSession.domEditSelection,
+    gestureState === "recording",
   );
 
   useStudioUrlState({
     projectId,
     activeCompPath,
-    currentTime,
     duration: effectiveTimelineDuration,
     isPlaying,
     compositionLoading,
@@ -541,7 +593,6 @@ export function StudioApp() {
     compositionLoading,
     refreshKey,
     setRefreshKey,
-    currentTime,
     timelineElements,
     isPlaying,
     editHistory,
@@ -616,7 +667,23 @@ export function StudioApp() {
                   setCompIdToSrc={setCompIdToSrc}
                   setCompositionLoading={setCompositionLoading}
                   shouldShowSelectedDomBounds={shouldShowSelectedDomBounds}
+                  isGestureRecording={gestureState === "recording"}
                   blockPreview={blockPreview}
+                  gestureOverlay={
+                    gestureState === "recording" && previewIframe ? (
+                      <GestureTrailOverlay
+                        samples={gestureRecording.samplesRef.current}
+                        sampleCount={gestureRecording.samplesRef.current.length}
+                        trail={gestureRecording.trailRef.current}
+                        canvasRect={(() => {
+                          const r = previewIframe.getBoundingClientRect();
+                          return { left: r.left, top: r.top, width: r.width, height: r.height };
+                        })()}
+                        compositionSize={compositionDimensions ?? undefined}
+                        mode="recording"
+                      />
+                    ) : undefined
+                  }
                 />
 
                 {!panelLayout.rightCollapsed && (
@@ -663,16 +730,6 @@ export function StudioApp() {
                 />
               )}
 
-              {gestureState === "recording" && previewIframe && (
-                <GestureTrailOverlay
-                  samples={gestureRecording.samples}
-                  canvasRect={(() => {
-                    const r = previewIframe.getBoundingClientRect();
-                    return { left: r.left, top: r.top, width: r.width, height: r.height };
-                  })()}
-                  mode="recording"
-                />
-              )}
               {dragOverlay.active && <StudioGlobalDragOverlay />}
               {appToast && (
                 <StudioToast

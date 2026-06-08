@@ -3,26 +3,36 @@ import type { GestureSample } from "../../hooks/useGestureRecording";
 
 interface GestureTrailOverlayProps {
   samples: GestureSample[];
+  sampleCount?: number;
+  trail?: Array<{ x: number; y: number }>;
   simplifiedPoints?: Map<number, Record<string, number>>;
   canvasRect: { left: number; top: number; width: number; height: number };
+  compositionSize?: { width: number; height: number };
   mode: "recording" | "preview";
   accentColor?: string;
 }
 
 export const GestureTrailOverlay = memo(function GestureTrailOverlay({
   samples,
+  sampleCount,
+  trail,
   simplifiedPoints,
   canvasRect,
+  compositionSize,
   mode,
   accentColor = "#3CE6AC",
 }: GestureTrailOverlayProps) {
   const trailPoints = useMemo(() => {
+    if (trail && trail.length > 1) {
+      return trail.map((p) => `${p.x - canvasRect.left},${p.y - canvasRect.top}`).join(" ");
+    }
     if (samples.length === 0) return "";
     return samples
       .filter((s) => s.properties.x != null && s.properties.y != null)
       .map((s) => `${s.properties.x},${s.properties.y}`)
       .join(" ");
-  }, [samples]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [samples, trail, sampleCount, canvasRect.left, canvasRect.top]);
 
   const simplifiedPath = useMemo(() => {
     if (!simplifiedPoints || simplifiedPoints.size === 0) return "";
@@ -52,14 +62,18 @@ export const GestureTrailOverlay = memo(function GestureTrailOverlay({
 
   return (
     <svg
-      className="pointer-events-none absolute"
+      className="pointer-events-none fixed z-50"
       style={{
         left: canvasRect.left,
         top: canvasRect.top,
         width: canvasRect.width,
         height: canvasRect.height,
       }}
-      viewBox={`0 0 ${canvasRect.width} ${canvasRect.height}`}
+      viewBox={
+        trail && trail.length > 1
+          ? `0 0 ${canvasRect.width} ${canvasRect.height}`
+          : `0 0 ${compositionSize?.width ?? canvasRect.width} ${compositionSize?.height ?? canvasRect.height}`
+      }
     >
       {mode === "recording" && trailPoints && (
         <polyline

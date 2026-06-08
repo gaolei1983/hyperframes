@@ -643,6 +643,7 @@ export const PropertyPanel = memo(function PropertyPanel({
           <div className="px-4 pb-3">
             <button
               type="button"
+              onMouseDown={(e) => e.preventDefault()}
               onClick={onToggleRecording}
               className={`w-full flex items-center justify-center gap-2 rounded-lg py-2 text-[11px] font-medium transition-colors ${
                 recordingState === "recording"
@@ -658,8 +659,8 @@ export const PropertyPanel = memo(function PropertyPanel({
                 )}
               </svg>
               {recordingState === "recording"
-                ? `Stop recording ${(recordingDuration ?? 0).toFixed(1)}s (R)`
-                : "Record gesture (R)"}
+                ? `Stop recording ${(recordingDuration ?? 0).toFixed(1)}s — press R`
+                : "Record gesture (R) — move pointer to capture motion"}
             </button>
           </div>
         )}

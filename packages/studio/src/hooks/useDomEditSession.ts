@@ -50,7 +50,6 @@ export interface UseDomEditSessionParams {
   compositionLoading: boolean;
   previewIframeRef: React.MutableRefObject<HTMLIFrameElement | null>;
   timelineElements: TimelineElement[];
-  currentTime: number;
   setSelectedTimelineElementId: (id: string | null) => void;
   setRightCollapsed: (collapsed: boolean) => void;
   setRightPanelTab: (tab: RightPanelTab) => void;
@@ -92,7 +91,6 @@ export function useDomEditSession({
   compositionLoading,
   previewIframeRef,
   timelineElements,
-  currentTime,
   setSelectedTimelineElementId,
   setRightCollapsed,
   setRightPanelTab,
@@ -184,7 +182,6 @@ export function useDomEditSession({
     activeCompPath,
     projectDir,
     projectIdRef,
-    currentTime,
     showToast,
     domEditSelectionRef,
     domEditSelection,
@@ -272,6 +269,7 @@ export function useDomEditSession({
     addGsapFromProperty,
     removeGsapFromProperty,
     addKeyframe,
+    addKeyframeBatch,
     removeKeyframe,
     convertToKeyframes,
     removeAllKeyframes,
@@ -434,6 +432,7 @@ export function useDomEditSession({
     handleGsapAddFromProperty,
     handleGsapRemoveFromProperty,
     handleGsapAddKeyframe,
+    handleGsapAddKeyframeBatch,
     handleGsapRemoveKeyframe,
     handleGsapConvertToKeyframes,
     handleGsapRemoveAllKeyframes,
@@ -450,10 +449,10 @@ export function useDomEditSession({
     addGsapFromProperty,
     removeGsapFromProperty,
     addKeyframe,
+    addKeyframeBatch,
     removeKeyframe,
     convertToKeyframes,
     removeAllKeyframes,
-    currentTime,
     handleDomManualEditsReset,
     selectedGsapAnimations,
   });
@@ -623,6 +622,7 @@ export function useDomEditSession({
     handleGsapAddFromProperty,
     handleGsapRemoveFromProperty,
     handleGsapAddKeyframe,
+    handleGsapAddKeyframeBatch,
     handleGsapRemoveKeyframe,
     handleGsapConvertToKeyframes,
     handleGsapRemoveAllKeyframes,
@@ -632,5 +632,12 @@ export function useDomEditSession({
     handleUpdateArcSegment,
     invalidateGsapCache: bumpGsapCache,
     previewIframeRef,
+    commitMutation: async (
+      mutation: Record<string, unknown>,
+      options: { label: string; softReload?: boolean },
+    ) => {
+      if (!domEditSelection) return;
+      await gsapCommitMutation(domEditSelection, mutation, options);
+    },
   };
 }

@@ -10,8 +10,6 @@ import { usePanelLayoutContext } from "../contexts/PanelLayoutContext";
 import { useDomEditContext } from "../contexts/DomEditContext";
 import { trackStudioEvent } from "../utils/studioTelemetry";
 
-export type RecordingState = "idle" | "recording" | "preview";
-
 export interface StudioHeaderProps {
   captureFrameHref: string;
   captureFrameFilename: string;

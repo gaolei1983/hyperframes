@@ -1,6 +1,5 @@
-import { useCallback, useRef, useState } from "react";
-
-// ── Types ──
+import { useCallback, useEffect, useRef, useState } from "react";
+import { usePlayerStore, liveTime } from "../player/store/playerStore";
 
 export interface GestureSample {
   time: number;
@@ -19,21 +18,7 @@ interface AccumulatedState {
   z: number;
 }
 
-// ── Pure mapping function ──
-
-/**
- * Maps raw pointer deltas, scroll delta, and modifier state to GSAP property
- * values. Pure and testable without DOM.
- *
- * Modifier-to-property mapping:
- *  - Plain drag        -> x, y (px delta from start)
- *  - Scroll wheel      -> z (accumulated scroll delta)
- *  - Shift + drag      -> rotationX (vert * 0.5), rotationY (horiz * 0.5)
- *  - Alt + drag horiz  -> rotation (horiz * 0.5)
- *  - Cmd/Ctrl + drag V -> opacity (vert delta mapped 0-1, clamped)
- *  - Cmd/Ctrl + scroll -> scale (scroll * 0.01, accumulated from 1.0)
- */
-export function resolveGestureProperties(
+function resolveGestureProperties(
   dx: number,
   dy: number,
   scrollDelta: number,
@@ -49,28 +34,24 @@ export function resolveGestureProperties(
   let nextZ = accumulatedState.z;
 
   if (modifiers.meta) {
-    // Cmd/Ctrl held: vertical drag -> opacity, scroll -> scale
-    nextOpacity = Math.max(0, Math.min(1, accumulatedState.opacity - dy * 0.005));
+    // Opacity derived from total vertical displacement (absolute, not accumulated).
+    // Dragging down reduces opacity; dragging back up restores it.
+    nextOpacity = Math.max(0, Math.min(1, 1 - dy * 0.005));
     properties.opacity = nextOpacity;
-
     if (scrollDelta !== 0) {
       nextScale = Math.max(0.01, accumulatedState.scale + scrollDelta * 0.01);
       properties.scale = nextScale;
     }
   } else if (modifiers.shift) {
-    // Shift held: drag -> rotationX/rotationY
     properties.rotationX = dy * 0.5;
     properties.rotationY = dx * 0.5;
   } else if (modifiers.alt) {
-    // Alt held: horizontal drag -> rotation
     properties.rotation = dx * 0.5;
   } else {
-    // Plain: drag -> x/y
     properties.x = dx;
     properties.y = dy;
   }
 
-  // Scroll without Cmd/Ctrl -> z accumulation
   if (!modifiers.meta && scrollDelta !== 0) {
     nextZ = accumulatedState.z + scrollDelta;
     properties.z = nextZ;
@@ -82,37 +63,129 @@ export function resolveGestureProperties(
   };
 }
 
-// ── Hook ──
-
 export function useGestureRecording() {
   const [isRecording, setIsRecording] = useState(false);
-  const [samples, setSamples] = useState<GestureSample[]>([]);
   const [recordingDuration, setRecordingDuration] = useState(0);
 
-  // Refs for high-frequency data (never useState for 60fps input)
+  // Synchronous guard — immune to React's async state batching.
+  // startRecording and stopRecording check this ref, not the useState value.
+  const isRecordingRef = useRef(false);
+
   const pointerRef = useRef({ x: 0, y: 0 });
   const startPointerRef = useRef({ x: 0, y: 0 });
   const scrollDeltaRef = useRef(0);
   const modifiersRef = useRef<Modifiers>({ shift: false, alt: false, meta: false });
   const accumulatedRef = useRef<AccumulatedState>({ opacity: 1, scale: 1, z: 0 });
+  const basePositionRef = useRef({ x: 0, y: 0 });
+  const scaleRef = useRef(1);
+  const hasMovedRef = useRef(false);
+  const pointerElementOffsetRef = useRef({ x: 0, y: 0 });
+  const runtimeRef = useRef<{
+    seek: (t: number) => void;
+    set: (target: string, vars: Record<string, number>) => void;
+    selector: string;
+    element: HTMLElement;
+    startTime: number;
+    maxSeekTime: number;
+  } | null>(null);
 
   const rafIdRef = useRef(0);
   const samplesRef = useRef<GestureSample[]>([]);
+  const trailRef = useRef<Array<{ x: number; y: number }>>([]);
   const cleanupRef = useRef<(() => void) | null>(null);
 
-  const startRecording = useCallback(
-    (element: HTMLElement, _iframeEl: HTMLIFrameElement) => {
-      if (isRecording) return;
+  // Unmount safety: cancel RAF + remove listeners if component tears down mid-recording.
+  useEffect(() => {
+    return () => {
+      cleanupRef.current?.();
+      cleanupRef.current = null;
+      isRecordingRef.current = false;
+    };
+  }, []);
 
-      // Reset state
+  const startRecording = useCallback(
+    (element: HTMLElement, iframeEl: HTMLIFrameElement, elementEndTime?: number) => {
+      if (isRecordingRef.current) return;
+      isRecordingRef.current = true;
+
       samplesRef.current = [];
-      setSamples([]);
+      trailRef.current = [];
+      hasMovedRef.current = false;
       setRecordingDuration(0);
-      accumulatedRef.current = { opacity: 1, scale: 1, z: 0 };
       scrollDeltaRef.current = 0;
 
-      // Listeners target the overlay element (same div DomEditOverlay uses).
-      // Passive so they never block scrolling.
+      let baseOpacity = 1;
+      let baseScaleVal = 1;
+      let baseX = 0;
+      let baseY = 0;
+      try {
+        const gsap = (
+          iframeEl.contentWindow as Window & {
+            gsap?: { getProperty: (el: Element, prop: string) => number };
+          }
+        ).gsap;
+        if (gsap?.getProperty) {
+          baseOpacity = Number(gsap.getProperty(element, "opacity")) || 1;
+          baseScaleVal = Number(gsap.getProperty(element, "scaleX")) || 1;
+          baseX = Number(gsap.getProperty(element, "x")) || 0;
+          baseY = Number(gsap.getProperty(element, "y")) || 0;
+        }
+      } catch {
+        /* cross-origin guard */
+      }
+      // When reapplyPathOffsets has run (translate restored to var-based),
+      // GSAP's cache was stripped — gsapX is 0 but the element is visually
+      // at CSSLeft + translate(offset). gsap.set wipes translate, so we need
+      // baseX to include the offset. When translate is "none" (GSAP owns it),
+      // gsapX already includes the baked offset — don't add.
+      const translateVal = element.style.translate ?? "";
+      if (translateVal.includes("var(")) {
+        const offX = Number.parseFloat(element.style.getPropertyValue("--hf-studio-offset-x")) || 0;
+        const offY = Number.parseFloat(element.style.getPropertyValue("--hf-studio-offset-y")) || 0;
+        baseX += offX;
+        baseY += offY;
+      }
+      accumulatedRef.current = { opacity: baseOpacity, scale: baseScaleVal, z: 0 };
+      basePositionRef.current = { x: baseX, y: baseY };
+
+      const selector = element.id ? `#${element.id}` : null;
+      try {
+        const win = iframeEl.contentWindow as Window & {
+          gsap?: { set: (t: string, v: Record<string, number>) => void };
+          __timelines?: Record<string, { seek: (t: number) => void; duration: () => number }>;
+          __player?: { getTime: () => number };
+        };
+        const tl = win?.__timelines ? Object.values(win.__timelines)[0] : null;
+        if (win?.gsap?.set && tl?.seek && selector) {
+          const tlDuration = tl.duration();
+          runtimeRef.current = {
+            seek: tl.seek.bind(tl),
+            set: win.gsap.set.bind(win.gsap),
+            selector,
+            element,
+            startTime: win.__player?.getTime() ?? 0,
+            maxSeekTime:
+              elementEndTime != null && elementEndTime < tlDuration ? elementEndTime : tlDuration,
+          };
+        }
+      } catch {
+        runtimeRef.current = null;
+      }
+
+      const iframeRect = iframeEl.getBoundingClientRect();
+      const doc = iframeEl.contentDocument;
+      const root = doc?.querySelector<HTMLElement>("[data-composition-id]") ?? doc?.documentElement;
+      const declaredWidth = Number(root?.getAttribute("data-width")) || 1920;
+      scaleRef.current = declaredWidth > 0 ? iframeRect.width / declaredWidth : 1;
+
+      // Compute the offset between the element's visual center and the pointer
+      // so the element tracks the pointer exactly during recording (no jump).
+      const elRect = element.getBoundingClientRect();
+      const elCenterViewport = {
+        x: elRect.left + elRect.width / 2,
+        y: elRect.top + elRect.height / 2,
+      };
+      pointerElementOffsetRef.current = { x: 0, y: 0 }; // reset; set on first move
 
       const handlePointerMove = (e: PointerEvent) => {
         pointerRef.current = { x: e.clientX, y: e.clientY };
@@ -132,7 +205,7 @@ export function useGestureRecording() {
         };
       };
 
-      const handleKeyDown = (e: KeyboardEvent) => {
+      const handleKeyChange = (e: KeyboardEvent) => {
         modifiersRef.current = {
           shift: e.shiftKey,
           alt: e.altKey,
@@ -140,43 +213,45 @@ export function useGestureRecording() {
         };
       };
 
-      const handleKeyUp = (e: KeyboardEvent) => {
-        modifiersRef.current = {
-          shift: e.shiftKey,
-          alt: e.altKey,
-          meta: e.metaKey || e.ctrlKey,
-        };
-      };
+      document.addEventListener("pointermove", handlePointerMove, { passive: true });
+      document.addEventListener("wheel", handleWheel, { passive: true });
+      document.addEventListener("keydown", handleKeyChange, { passive: true });
+      document.addEventListener("keyup", handleKeyChange, { passive: true });
 
-      element.addEventListener("pointermove", handlePointerMove, { passive: true });
-      element.addEventListener("wheel", handleWheel, { passive: true });
-      document.addEventListener("keydown", handleKeyDown, { passive: true });
-      document.addEventListener("keyup", handleKeyUp, { passive: true });
-
-      // Capture initial pointer position from the first move; until then delta is 0.
-      // We set it explicitly so the first RAF tick sees zero deltas.
       startPointerRef.current = { ...pointerRef.current };
-
       const startMs = performance.now();
 
-      // Store pointer start once the first pointermove fires
       let startCaptured = false;
       const captureStart = (e: PointerEvent) => {
         if (!startCaptured) {
           startPointerRef.current = { x: e.clientX, y: e.clientY };
+          // Compute the offset between the pointer and the element center
+          // so the element follows the pointer without jumping.
+          pointerElementOffsetRef.current = {
+            x: e.clientX - elCenterViewport.x,
+            y: e.clientY - elCenterViewport.y,
+          };
           startCaptured = true;
+          hasMovedRef.current = true;
         }
       };
-      element.addEventListener("pointermove", captureStart, { passive: true, once: true });
+      document.addEventListener("pointermove", captureStart, { passive: true, once: true });
 
-      // RAF loop — sample at ~60fps
       const tick = () => {
+        if (!isRecordingRef.current) return;
         const now = performance.now();
         const time = (now - startMs) / 1000;
-
-        const dx = pointerRef.current.x - startPointerRef.current.x;
-        const dy = pointerRef.current.y - startPointerRef.current.y;
+        const scale = scaleRef.current || 1;
+        const dx = (pointerRef.current.x - startPointerRef.current.x) / scale;
+        const dy = (pointerRef.current.y - startPointerRef.current.y) / scale;
         const scrollDelta = scrollDeltaRef.current;
+
+        // Skip zero-displacement samples before the pointer has moved.
+        if (!hasMovedRef.current && dx === 0 && dy === 0 && scrollDelta === 0) {
+          rafIdRef.current = requestAnimationFrame(tick);
+          return;
+        }
+        hasMovedRef.current = true;
 
         const { properties, nextState } = resolveGestureProperties(
           dx,
@@ -185,50 +260,69 @@ export function useGestureRecording() {
           modifiersRef.current,
           accumulatedRef.current,
         );
+        if ("x" in properties) properties.x = Math.round(basePositionRef.current.x + properties.x);
+        if ("y" in properties) properties.y = Math.round(basePositionRef.current.y + properties.y);
 
         accumulatedRef.current = nextState;
-        // Reset scroll delta after consuming it — it's accumulated per-frame
         scrollDeltaRef.current = 0;
 
-        const sample: GestureSample = { time, properties };
-        samplesRef.current.push(sample);
-        setRecordingDuration(time);
+        // Manual seek on the raw GSAP timeline (not the Studio player wrapper,
+        // which triggers React state updates). After seek renders all elements
+        // at the correct time, gsap.set overrides the recorded element so it
+        // follows the pointer. The browser paints the set values on this frame;
+        // next tick's seek will overwrite, but we re-apply immediately.
+        if (runtimeRef.current) {
+          try {
+            const seekTime = Math.min(
+              runtimeRef.current.startTime + time,
+              runtimeRef.current.maxSeekTime,
+            );
+            runtimeRef.current.seek(seekTime);
+            runtimeRef.current.set(runtimeRef.current.selector, { ...properties });
+            runtimeRef.current.element.style.visibility = "visible";
+            liveTime.notify(seekTime);
+            usePlayerStore.getState().setCurrentTime(seekTime);
+          } catch {
+            runtimeRef.current = null;
+          }
+        }
 
+        samplesRef.current.push({ time, properties });
+        trailRef.current.push({ x: pointerRef.current.x, y: pointerRef.current.y });
+        setRecordingDuration(time);
         rafIdRef.current = requestAnimationFrame(tick);
       };
 
       setIsRecording(true);
       rafIdRef.current = requestAnimationFrame(tick);
 
-      // Store cleanup so stopRecording can tear everything down
       cleanupRef.current = () => {
         cancelAnimationFrame(rafIdRef.current);
-        element.removeEventListener("pointermove", handlePointerMove);
-        element.removeEventListener("wheel", handleWheel);
-        document.removeEventListener("keydown", handleKeyDown);
-        document.removeEventListener("keyup", handleKeyUp);
-        element.removeEventListener("pointermove", captureStart);
+        document.removeEventListener("pointermove", handlePointerMove);
+        document.removeEventListener("wheel", handleWheel);
+        document.removeEventListener("keydown", handleKeyChange);
+        document.removeEventListener("keyup", handleKeyChange);
+        document.removeEventListener("pointermove", captureStart);
       };
     },
-    [isRecording],
+    [], // No deps — uses refs only for all mutable state
   );
 
-  const stopRecording = useCallback(() => {
-    if (!isRecording) return;
-
+  const stopRecording = useCallback((): GestureSample[] => {
+    if (!isRecordingRef.current) return [];
+    isRecordingRef.current = false;
+    runtimeRef.current = null;
     cleanupRef.current?.();
     cleanupRef.current = null;
-
-    // Freeze samples into React state
     const frozen = samplesRef.current.slice();
-    setSamples(frozen);
-    setRecordingDuration(frozen.length > 0 ? frozen[frozen.length - 1].time : 0);
+    setRecordingDuration(frozen.length > 0 ? frozen[frozen.length - 1]!.time : 0);
     setIsRecording(false);
-  }, [isRecording]);
+    return frozen;
+  }, []); // No deps — uses refs only
 
   const clearSamples = useCallback(() => {
     samplesRef.current = [];
-    setSamples([]);
+    trailRef.current = [];
     setRecordingDuration(0);
     accumulatedRef.current = { opacity: 1, scale: 1, z: 0 };
     scrollDeltaRef.current = 0;
@@ -238,7 +332,8 @@ export function useGestureRecording() {
     startRecording,
     stopRecording,
     isRecording,
-    samples,
+    samplesRef,
+    trailRef,
     recordingDuration,
     clearSamples,
   };

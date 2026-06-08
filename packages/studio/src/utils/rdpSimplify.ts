@@ -38,7 +38,7 @@ function perpendicularDistance(
  * - A large `epsilon` returns just the first and last points.
  * - Empty or single-point input is returned unchanged.
  */
-export function simplifyTimeSeries(
+function simplifyTimeSeries(
   points: Array<{ time: number; value: number }>,
   epsilon: number,
 ): Array<{ time: number; value: number }> {

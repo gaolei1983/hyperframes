@@ -954,33 +954,13 @@ export function initSandboxRuntimeModular(): void {
         state.capturedTimeline.totalTime(seekTime, false);
       }
 
-      // Strip stale CSS offset artifacts from GSAP-targeted elements.
-      // These leak into the HTML when the CSS offset path fires for a
-      // GSAP-animated element (stale cache race). On reload, both the
-      // offset and GSAP transform stack, doubling the visual position.
-      const staleEls = document.querySelectorAll("[data-hf-studio-path-offset]");
-      if (staleEls.length > 0 && state.capturedTimeline.getChildren) {
-        const tweenTargets = new Set<Element>();
-        try {
-          for (const child of state.capturedTimeline.getChildren(true)) {
-            if (typeof child.targets === "function") {
-              for (const t of child.targets()) tweenTargets.add(t);
-            }
-          }
-        } catch {
-          /* timeline access guard */
-        }
-        for (const el of staleEls) {
-          if (!tweenTargets.has(el)) continue;
-          const htmlEl = el as HTMLElement;
-          htmlEl.removeAttribute("data-hf-studio-path-offset");
-          htmlEl.removeAttribute("data-hf-studio-original-translate");
-          htmlEl.removeAttribute("data-hf-studio-original-inline-translate");
-          htmlEl.style.removeProperty("--hf-studio-offset-x");
-          htmlEl.style.removeProperty("--hf-studio-offset-y");
-          htmlEl.style.removeProperty("translate");
-        }
-      }
+      // GSAP bakes the CSS `translate` into style.transform on seek.
+      // The Studio seek wrapper (installStudioManualEditSeekReapply) calls
+      // reapplyPositionEditsAfterSeek to un-bake it. Call the apply hook
+      // directly here as well, since the wrapper may not be installed yet
+      // during initial rebind (timing race on first load / soft reload).
+      const applyFn = (window as Record<string, unknown>).__hfStudioManualEditsApply;
+      if (typeof applyFn === "function") applyFn();
     }
     if (resolution.diagnostics) {
       postRuntimeMessage({
