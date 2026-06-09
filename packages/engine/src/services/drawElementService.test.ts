@@ -53,24 +53,16 @@ describe("resolveDrawElementCaptureMode", () => {
     expect(resolveDrawElementCaptureMode(false, false)).toBe("drawelement");
   });
 
-  // ── video routing: needs a per-frame BeginFrame paint for a fresh snapshot ──
-  it("video without BeginFrame paint → screenshot (stale snapshot otherwise)", () => {
-    expect(resolveDrawElementCaptureMode(false, false, /* hasVideo */ true, /* bf */ false)).toBe(
-      "screenshot",
-    );
+  // ── video routing: drawElementImage can't capture video on any platform ──
+  it("video → screenshot (drawElementImage does not capture video frames)", () => {
+    expect(resolveDrawElementCaptureMode(false, false, /* hasVideo */ true)).toBe("screenshot");
   });
 
-  it("video WITH BeginFrame paint → drawelement (Linux headless-shell paints each frame)", () => {
-    expect(resolveDrawElementCaptureMode(false, false, /* hasVideo */ true, /* bf */ true)).toBe(
-      "drawelement",
-    );
+  it("video + GPU still screenshot (verified broken on macOS and Linux/BeginFrame)", () => {
+    expect(resolveDrawElementCaptureMode(false, false, true)).toBe("screenshot");
   });
 
-  it("no video → drawelement regardless of BeginFrame", () => {
-    expect(resolveDrawElementCaptureMode(false, false, false, false)).toBe("drawelement");
-  });
-
-  it("transparent + SwiftShader still screenshot even with BeginFrame", () => {
-    expect(resolveDrawElementCaptureMode(true, true, false, true)).toBe("screenshot");
+  it("no video → drawelement", () => {
+    expect(resolveDrawElementCaptureMode(false, false, false)).toBe("drawelement");
   });
 });

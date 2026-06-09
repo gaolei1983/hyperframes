@@ -9,15 +9,9 @@
 name: Fast-capture video validation
 
 on:
-  # Temporary: lets the workflow run on this branch before it lands on the
-  # default branch (workflow_dispatch is only triggerable from default). Remove
-  # before merge — workflow_dispatch is the intended trigger.
-  push:
-    branches: ["drawelement-fast-capture"]
-    paths:
-      - ".github/workflows/fast-video-validation.yml"
-      - "packages/producer/scripts/validate-fast-video.ts"
-      - "packages/engine/src/services/**"
+  # Manual only. NOTE: currently fails by design — fast capture cannot capture
+  # video on any platform yet (see docs/fast-capture-limitations.md, Limitation 2).
+  # This is the regression gate for if/when fast video is implemented.
   workflow_dispatch:
     inputs:
       composition:

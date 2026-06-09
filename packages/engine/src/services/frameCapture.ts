@@ -347,22 +347,16 @@ async function initDrawElementOrTransparentBackground(
   if (useDrawElement) {
     session.isSwiftShader = await detectSwiftShader(page);
     const transparent = session.options.format === "png";
+    // drawElementImage does not capture the per-frame video <img> (the snapshot
+    // predates it) — verified black on both macOS and native Linux/BeginFrame —
+    // so any composition containing <video> falls back to screenshot capture.
     const hasVideo = await page.evaluate(() => document.querySelector("video") !== null);
-    // BeginFrame drives a per-frame paint (Linux headless-shell) → drawElementImage
-    // reads a fresh snapshot, so video captures correctly. Without it (macOS) the
-    // snapshot is stale → video would be black; route those renders to screenshot.
-    const beginFramePaints = session.beginFrameTimeTicks > 0;
-    const mode = resolveDrawElementCaptureMode(
-      session.isSwiftShader,
-      transparent,
-      hasVideo,
-      beginFramePaints,
-    );
+    const mode = resolveDrawElementCaptureMode(session.isSwiftShader, transparent, hasVideo);
     if (mode === "screenshot") {
       const reason =
         transparent && session.isSwiftShader
           ? "transparent output on SwiftShader (Chromium bug 521434899)"
-          : "video without per-frame BeginFrame paint (drawElementImage snapshot would be stale)";
+          : "composition contains <video> (drawElementImage does not capture video frames)";
       console.log(`[engine] fast capture: falling back to screenshot — ${reason}`);
       session.captureMode = "screenshot";
       if (transparent) {

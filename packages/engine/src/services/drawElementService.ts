@@ -21,23 +21,20 @@ import type { Page } from "puppeteer-core";
  * Two cases fall back to screenshot (see docs/fast-capture-limitations.md):
  *  - transparent + SwiftShader: software-GL drops promoted sub-layers on a
  *    transparent canvas destination (Chromium bug 521434899).
- *  - hasVideo + !beginFramePaints: drawElementImage draws a snapshot taken at
- *    the paint event; without a per-frame BeginFrame paint (e.g. macOS, which
- *    has no --enable-begin-frame-control) the snapshot is stale → black/frozen
- *    video. Where BeginFrame drives a paint each frame (Linux headless-shell)
- *    the snapshot is current and video captures correctly.
- *
- * @param beginFramePaints true when a per-frame HeadlessExperimental.beginFrame
- *   advances + paints the compositor before each capture (Linux headless-shell).
+ *  - hasVideo: drawElementImage draws a snapshot taken at the paint event and
+ *    does not capture the freshly-injected per-frame video <img> — the video
+ *    region comes out black/stale. This was verified on BOTH macOS and a native
+ *    amd64 Linux runner (where per-frame BeginFrame *does* paint) — fast-vs-
+ *    baseline PSNR ~12 dB either way — so video is unconditionally routed to
+ *    screenshot capture regardless of platform. Fast video is future R&D.
  */
 export function resolveDrawElementCaptureMode(
   isSwiftShader: boolean,
   transparent: boolean,
   hasVideo = false,
-  beginFramePaints = false,
 ): "drawelement" | "screenshot" {
   if (transparent && isSwiftShader) return "screenshot";
-  if (hasVideo && !beginFramePaints) return "screenshot";
+  if (hasVideo) return "screenshot";
   return "drawelement";
 }
 
