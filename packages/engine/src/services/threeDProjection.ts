@@ -894,3 +894,65 @@ export async function initThreeDProjection(page: Page): Promise<ThreeDProjection
     return { ok: false, groups: 0, quads: 0, reason: e instanceof Error ? e.message : String(e) };
   }
 }
+
+/**
+ * Stacked-fade risk check, run in-page at fast-capture init.
+ *
+ * Multi-scene compositions crossfade by animating opacity on stacked
+ * full-viewport wrappers — drawElementImage captures transparent frames
+ * mid-fade (crbug 521861819; filter-based fades hit the identical blackout,
+ * spikes/de-fade-filter-crbug.mjs, so no rewrite escapes it). Measured
+ * floors: 22–26 dB during every transition window on real compositions.
+ *
+ * Detection is mechanism-based, not markup-based: the producer stub records
+ * every GSAP tween target whose vars fade it (opacity/autoAlpha) as
+ * window.__hfFadeTargets. Two or more such targets that are viewport-scale
+ * (>= half the viewport area) AND overlap each other reproduce the broken
+ * pattern regardless of authoring convention. Small fade targets (captions,
+ * letters, badges) pass — measured clean at 49+ dB.
+ */
+export async function detectStackedFadeRisk(page: Page): Promise<boolean> {
+  try {
+    return await page.evaluate(() => {
+      const w = window as Window & { __hfFadeTargets?: unknown[] };
+      const targets = w.__hfFadeTargets ?? [];
+      if (targets.length < 2) return false;
+      const els = new Set<HTMLElement>();
+      for (const target of targets) {
+        if (typeof target === "string") {
+          try {
+            for (const el of Array.from(document.querySelectorAll(target))) {
+              if (el instanceof HTMLElement) els.add(el);
+            }
+          } catch {
+            /* invalid selector */
+          }
+        } else if (target instanceof HTMLElement) {
+          els.add(target);
+        } else if (Array.isArray(target)) {
+          for (const t of target) if (t instanceof HTMLElement) els.add(t);
+        }
+      }
+      const viewportArea = window.innerWidth * window.innerHeight;
+      const big: DOMRect[] = [];
+      for (const el of els) {
+        const r = el.getBoundingClientRect();
+        if (r.width * r.height >= viewportArea * 0.5) big.push(r);
+      }
+      for (let i = 0; i < big.length; i++) {
+        for (let j = i + 1; j < big.length; j++) {
+          const a = big[i];
+          const b = big[j];
+          if (!a || !b) continue;
+          if (a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom) {
+            return true;
+          }
+        }
+      }
+      return false;
+    });
+  } catch {
+    // detection failure must not break the render — treat as no risk
+    return false;
+  }
+}

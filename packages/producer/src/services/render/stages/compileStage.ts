@@ -194,24 +194,6 @@ export async function runCompileStage(input: CompileStageInput): Promise<Compile
         "for this render. Capture uses the platform's baseline route.",
     );
   }
-  // Fast-capture crossfade gate. Multi-scene compositions crossfade via
-  // stacked hf-tx wrappers at animated partial opacity — drawElementImage
-  // drops the mid-fade content (crbug 521861819; filter-based fades hit the
-  // identical blackout, so no rewrite escapes it). Measured floors 22–26 dB
-  // during every transition window on real comps. Routes to the platform's
-  // baseline capture; HF_FAST_CAPTURE_CROSSFADE=true bypasses for R&D.
-  if (
-    cfg.useDrawElement &&
-    process.env.HF_FAST_CAPTURE_CROSSFADE !== "true" &&
-    compiled.usesSceneCrossfades
-  ) {
-    cfg.useDrawElement = false;
-    log.info(
-      "[Render] Fast capture: composition crossfades scenes via stacked hf-tx " +
-        "wrappers — drawElementImage drops mid-fade content (crbug 521861819). " +
-        "Capture uses the platform's baseline route.",
-    );
-  }
   // Fast-capture software-GL gate. On SwiftShader the non-low-memory
   // baseline (BeginFrame, multi-worker) is already fast: measured on
   // real-length compositions, drawElement single-worker capture is net

@@ -36,7 +36,7 @@ import {
   resolveDrawElementCaptureMode,
   instrumentAcceleratedCanvases,
 } from "./drawElementService.js";
-import { initThreeDProjection } from "./threeDProjection.js";
+import { initThreeDProjection, detectStackedFadeRisk } from "./threeDProjection.js";
 import { DEFAULT_CONFIG, type EngineConfig } from "../config.js";
 import type {
   CaptureOptions,
@@ -409,6 +409,24 @@ async function initDrawElementOrTransparentBackground(
         await initTransparentBackground(session.page);
       }
     } else {
+      // Stacked-fade gate: >=2 overlapping viewport-scale fade targets
+      // reproduce the drawElementImage mid-fade blackout (crbug 521861819).
+      // Mechanism-based — resolved from the producer stub's recorded fade
+      // tween targets, independent of any authoring convention. Falls back
+      // to the platform's baseline route, same contract as the video gate.
+      // HF_FAST_CAPTURE_CROSSFADE=true bypasses for R&D.
+      if (process.env.HF_FAST_CAPTURE_CROSSFADE !== "true" && (await detectStackedFadeRisk(page))) {
+        console.log(
+          `[engine] fast capture: falling back to ${session.launchCaptureMode} capture — ` +
+            "stacked viewport-scale fade targets detected (drawElementImage drops " +
+            "mid-fade content, crbug 521861819)",
+        );
+        session.captureMode = session.launchCaptureMode;
+        if (transparent) {
+          await initTransparentBackground(session.page);
+        }
+        return;
+      }
       // Rewrite CSS 3D contexts into WebGL-projected canvases BEFORE the
       // layoutsubtree canvas goes in (rects are measured in normal layout).
       // drawElementImage cannot paint 3D rendering contexts — see

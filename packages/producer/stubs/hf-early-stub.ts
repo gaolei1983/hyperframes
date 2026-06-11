@@ -249,16 +249,34 @@ function varsHasThreeD(vars: unknown): boolean {
  * a quad's subtree makes that quad unprojectable (the engine falls back). */
 const allTweenTargets = new Set<unknown>();
 
+/** Tween targets whose vars fade them (opacity or autoAlpha). The engine's
+ * stacked-fade gate resolves these at init: two or more overlapping
+ * viewport-scale fade targets reproduce the drawElementImage mid-fade
+ * blackout (crbug 521861819) and route the render to the baseline path.
+ * Exposed as window.__hfFadeTargets. */
+const fadeTweenTargets = new Set<unknown>();
+
+function varsHasFade(vars: unknown): boolean {
+  if (vars === null || typeof vars !== "object" || Array.isArray(vars)) return false;
+  const record = vars as Record<string, unknown>;
+  return "opacity" in record || "autoAlpha" in record;
+}
+
 function recordThreeDTweenTarget(args: unknown[]): void {
   const target = args[0];
   if (target === null || target === undefined) return;
   const w = window as Window & {
     __hf3dTweenTargets?: unknown[];
     __hfAllTweenTargets?: unknown[];
+    __hfFadeTargets?: unknown[];
   };
   if (!allTweenTargets.has(target)) {
     allTweenTargets.add(target);
     w.__hfAllTweenTargets = Array.from(allTweenTargets);
+  }
+  if ((varsHasFade(args[1]) || varsHasFade(args[2])) && !fadeTweenTargets.has(target)) {
+    fadeTweenTargets.add(target);
+    w.__hfFadeTargets = Array.from(fadeTweenTargets);
   }
   if (varsHasThreeD(args[1]) || varsHasThreeD(args[2])) {
     threeDTweenTargets.add(target);

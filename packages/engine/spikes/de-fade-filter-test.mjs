@@ -2,7 +2,6 @@
 // instead of opacity? Reproduces the crossfade drop (two stacked scene
 // wrappers at partial opacity) and compares both fade mechanisms.
 import puppeteer from "puppeteer";
-import { spawnSync } from "node:child_process";
 import { writeFileSync } from "node:fs";
 const W=400,H=300;
 const HTML=`<!doctype html><meta charset=utf-8>

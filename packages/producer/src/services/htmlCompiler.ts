@@ -59,8 +59,6 @@ export interface CompiledComposition {
   hasShaderTransitions: boolean;
   /** Author HTML/CSS/scripts use a CSS 3D rendering context (pre-CDN-inline scan). */
   usesThreeDTransforms: boolean;
-  /** Two or more hf-tx scene-transition wrappers — crossfades capture broken. */
-  usesSceneCrossfades: boolean;
 }
 
 export type RenderModeHintCode = "iframe" | "requestAnimationFrame" | "htmlInCanvas";
@@ -163,20 +161,6 @@ const THREE_D_CONTEXT_PATTERN =
 
 export function detectThreeDTransformUsage(html: string): boolean {
   return THREE_D_CONTEXT_PATTERN.test(html);
-}
-
-/**
- * Scene-crossfade signal: two or more `hf-tx` transition wrappers. The
- * runtime crossfades scenes by animating opacity on stacked full-size
- * wrappers — exactly the pattern drawElementImage captures as transparent
- * frames mid-fade (crbug 521861819; spikes/de-fade-filter-crbug.mjs shows
- * filter-based fades hit it too, so no re-expression escapes it). Measured
- * floors on real multi-scene comps: 22–26 dB during every transition window.
- */
-const HF_TX_PATTERN = /class\s*=\s*["'][^"']*\bhf-tx\b/g;
-
-export function detectSceneCrossfades(html: string): boolean {
-  return (html.match(HF_TX_PATTERN)?.length ?? 0) >= 2;
 }
 
 const SHADER_TRANSITION_USAGE_PATTERN =
@@ -1426,7 +1410,6 @@ export async function compileForRender(
   // `transformPerspective`, so scanning post-inline HTML would flag every
   // composition that loads GSAP from a CDN.
   const usesThreeDTransforms = detectThreeDTransformUsage(sanitizedHtml);
-  const usesSceneCrossfades = detectSceneCrossfades(sanitizedHtml);
 
   const coalescedHtml = await injectDeterministicFontFaces(
     injectTextRenderingRule(
@@ -1590,7 +1573,6 @@ export async function compileForRender(
     renderModeHints,
     hasShaderTransitions,
     usesThreeDTransforms,
-    usesSceneCrossfades,
   };
 }
 
