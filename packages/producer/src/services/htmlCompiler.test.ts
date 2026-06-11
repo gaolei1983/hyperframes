@@ -8,6 +8,7 @@ import {
   compileForRender,
   detectRenderModeHints,
   detectShaderTransitionUsage,
+  detectSceneCrossfades,
   detectThreeDTransformUsage,
   discoverAudioVolumeAutomationFromTimeline,
   inlineExternalScripts,
@@ -520,6 +521,32 @@ describe("detectRenderModeHints", () => {
     ).rejects.toThrow(
       "Composition HTML is empty or could not be parsed: compositions/intro.html. Check that the file referenced by data-composition-src contains valid HTML.",
     );
+  });
+});
+
+describe("detectSceneCrossfades", () => {
+  it("detects two or more hf-tx wrappers", () => {
+    expect(detectSceneCrossfades('<div class="hf-tx">a</div><div class="hf-tx">b</div>')).toBe(
+      true,
+    );
+  });
+
+  it("does not match a single hf-tx wrapper", () => {
+    expect(detectSceneCrossfades('<div class="hf-tx">only</div>')).toBe(false);
+  });
+
+  it("does not match hf-tx as a substring of another class", () => {
+    expect(detectSceneCrossfades('<div class="hf-txx">a</div><div class="xhf-tx">b</div>')).toBe(
+      false,
+    );
+  });
+
+  it("matches hf-tx among multiple classes", () => {
+    expect(
+      detectSceneCrossfades(
+        '<div class="scene hf-tx active">a</div><section class="hf-tx out">b</section>',
+      ),
+    ).toBe(true);
   });
 });
 
