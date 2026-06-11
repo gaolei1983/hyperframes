@@ -99,7 +99,7 @@ The answer drives both Step 4 (whether `narration.wav` + `transcript.json` are g
 
 Write the script first — the narration is the spine the video carries, and the beats must serve what's being said. Open with the hook (no "Welcome to…"), follow the narrative arc locked in Step 2, write to ~2.5 words/sec for the target duration. Save as `SCRIPT.md`.
 
-Then derive the storyboard from the script: split the script into beats, write a beat per sentence-cluster or per arc-moment, pick 2–4 techniques per beat that serve what the narration is saying at that timestamp, do the brand-accents pass at the end. Save as `STORYBOARD.md`.
+Then derive the storyboard from the script: split the script into beats, write a beat per sentence-cluster or per arc-moment, pick 2–4 techniques per beat that serve what the narration is saying at that timestamp, decide per beat what visual content carries it (captured asset / composed visual / both layered — see step-3 for the principle), then verify the Asset & Brand Floor at the end. Save as `STORYBOARD.md`.
 
 Present a compact summary to the user: 1-line script gist + beat list (verb + visual + duration). Iterate until they approve.
 

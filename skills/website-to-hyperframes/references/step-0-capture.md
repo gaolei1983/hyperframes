@@ -107,6 +107,6 @@ Print your site summary before proceeding to Step 1. The summary is **strategy-f
 - **Colors:** [top 3-5 HEX values with roles]
 - **Fonts:** [font families]
 - **Sections:** [count] sections, [count] headings, [count] CTAs
-- **Notable captured assets:** [3-5 assets worth remembering as potential brand accents — typically logo, hero illustration, gradient, brand mark. Note these are candidates, not assignments. Most won't make it into the final video.]
+- **Notable captured assets:** [the 3-7 visually distinctive assets worth remembering as candidates for the video — typically the brand mark / wordmark, hero illustration(s), product photography, signature gradient, key diagrams, partner-logo set if present, captured video clips. Just list candidates here; Step 3 decides per beat whether each captured asset, a composed visual, or both layered serves the beat best.]
 
 The first 5 bullets are the strategic frame — they tell you what video to make. The last 4 are the brand toolkit you'll inflect that video with.
