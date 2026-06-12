@@ -322,7 +322,7 @@
         "  vUv = uv;",
         "  vFormColor = texture2D(uForm, clamp(uv, vec2(0.0), vec2(1.0))).rgb;",
         "  float h = sampleBlurredHeight(uv);",
-        "  h = smoothstep(0.18, 0.55, h);",
+        "  h = smoothstep(0.08, 0.78, h);",
         "",
         "  vec2 stp = max(uBlurRadius * 1.5, 1.0) / uFormSize;",
         "  float hX = sampleHeight(uv + vec2(stp.x, 0.0)) - sampleHeight(uv - vec2(stp.x, 0.0));",
@@ -430,7 +430,7 @@
         "}",
       ].join("\n");
 
-      var HEIGHT_SCALE = 0.34;
+      var HEIGHT_SCALE = 0.24;
       var FLOOR_FADE_START = 0.02;
       var FLOOR_FADE_END = 0.1;
 
@@ -444,7 +444,7 @@
             uHeightScale: { value: HEIGHT_SCALE },
             uTime: { value: 0 },
             uPointSize: { value: 12.5 },
-            uBlurRadius: { value: 1.8 },
+            uBlurRadius: { value: 2.6 },
             uFloorFadeStart: { value: FLOOR_FADE_START },
             uFloorFadeEnd: { value: FLOOR_FADE_END },
             uFloorPointSizeRatio: { value: 0.6 },
