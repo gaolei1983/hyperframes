@@ -1,0 +1,719 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Parallax Grid — Kinetic Dot Lattice</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        background: #06070b;
+        overflow: hidden;
+      }
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: var(--bg-color, #06070b);
+      }
+      #pg-canvas {
+        display: block;
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+      .pg-vignette {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: radial-gradient(
+          ellipse 120% 95% at 50% 48%,
+          transparent 55%,
+          rgba(0, 0, 0, 0.42) 100%
+        );
+      }
+      /* Forces the web font to load so document.fonts.ready waits for it —
+         the canvas glyph sampler depends on real metrics. */
+      .pg-font-preload {
+        position: absolute;
+        left: -9999px;
+        top: -9999px;
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 700;
+        font-size: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="parallax-grid"
+      data-width="1920"
+      data-height="1080"
+      data-start="0"
+      data-duration="12"
+      data-root="true"
+    >
+      <canvas id="pg-canvas" width="1920" height="1080"></canvas>
+      <div class="pg-vignette"></div>
+      <span class="pg-font-preload" aria-hidden="true">HYPERFRAMES</span>
+      <div
+        id="pg-driver"
+        class="clip"
+        data-start="0"
+        data-duration="12"
+        data-track-index="0"
+        style="position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none"
+      ></div>
+    </div>
+
+    <script>
+      var W = 1920,
+        H = 1080,
+        CX = W / 2,
+        CY = H / 2;
+      var DURATION = 12;
+
+      var canvas = document.getElementById("pg-canvas");
+      var ctx = canvas.getContext("2d");
+
+      var root = document.getElementById("root");
+      var rootStyle = getComputedStyle(root);
+      function cssVar(name, fallback) {
+        var v = rootStyle.getPropertyValue(name).trim();
+        return v || fallback;
+      }
+
+      var BG_COLOR = cssVar("--bg-color", "#06070b");
+      var DOT_COLOR = cssVar("--dot-color", "#dfe5ee");
+      var ACCENT_COLOR = cssVar("--accent-color", "#7cc4ff");
+
+      var WORD_A = "HYPER";
+      var WORD_B = "FRAMES";
+
+      // Grid / projection
+      var COLS = 48,
+        ROWS = 27,
+        SPACING = 40;
+      var DEPTH = 420; // z of the back face (front face rests at z = 0)
+      var F = 900; // perspective focal length
+
+      var TEXT_SIZE = 300;
+      var TEXT_WEIGHT = 700;
+      var FONT_FAMILY = '"Space Grotesk", -apple-system, BlinkMacSystemFont, sans-serif';
+      var VERTS_PER_CHAR = 60;
+      var MAX_VERTS = 700;
+
+      // ── Seeded PRNG (mulberry32) ─────────────────────────────────────
+      function mulberry32(seed) {
+        return function () {
+          seed |= 0;
+          seed = (seed + 0x6d2b79f5) | 0;
+          var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+      var rng = mulberry32(1337);
+
+      // ── Color helpers ────────────────────────────────────────────────
+      function parseHex(hex) {
+        var v = (hex || "").trim();
+        if (/^#[0-9a-fA-F]{3}$/.test(v)) {
+          return [parseInt(v[1] + v[1], 16), parseInt(v[2] + v[2], 16), parseInt(v[3] + v[3], 16)];
+        }
+        if (/^#[0-9a-fA-F]{6,8}$/.test(v)) {
+          return [
+            parseInt(v.slice(1, 3), 16),
+            parseInt(v.slice(3, 5), 16),
+            parseInt(v.slice(5, 7), 16),
+          ];
+        }
+        return [255, 255, 255];
+      }
+      var DOT_RGB = parseHex(DOT_COLOR);
+      var ACCENT_RGB = parseHex(ACCENT_COLOR);
+      function mixRgb(a, b, t) {
+        return [
+          Math.round(a[0] + (b[0] - a[0]) * t),
+          Math.round(a[1] + (b[1] - a[1]) * t),
+          Math.round(a[2] + (b[2] - a[2]) * t),
+        ];
+      }
+      function rgba(rgb, a) {
+        return "rgba(" + rgb[0] + ", " + rgb[1] + ", " + rgb[2] + ", " + a + ")";
+      }
+
+      // ── Back grid ────────────────────────────────────────────────────
+      var N = COLS * ROWS;
+      var rest = new Float64Array(N * 2);
+      (function buildGrid() {
+        var p = 0;
+        for (var j = 0; j < ROWS; j++) {
+          for (var i = 0; i < COLS; i++) {
+            rest[p++] = (i - (COLS - 1) / 2) * SPACING;
+            rest[p++] = (j - (ROWS - 1) / 2) * SPACING;
+          }
+        }
+      })();
+
+      // ── Text outline sampling: glyphs → edge pixels → polylines → arc-length resample ──
+      function sampleTextVertices(text, vertexCount) {
+        if (!text.trim() || vertexCount <= 0) return [];
+
+        var measure = document.createElement("canvas");
+        measure.width = 8;
+        measure.height = 8;
+        var mctx = measure.getContext("2d");
+        mctx.font = TEXT_WEIGHT + " " + TEXT_SIZE + "px " + FONT_FAMILY;
+        var lineW = Math.max(mctx.measureText(text).width, text.length * TEXT_SIZE * 0.7);
+        var padding = Math.ceil(TEXT_SIZE * 0.6);
+        var w = Math.ceil(lineW + padding * 2);
+        var h = Math.ceil(TEXT_SIZE * 1.3 + padding * 2);
+
+        var off = document.createElement("canvas");
+        off.width = w;
+        off.height = h;
+        var octx = off.getContext("2d", { willReadFrequently: true });
+        octx.fillStyle = "#ffffff";
+        octx.fillRect(0, 0, w, h);
+        octx.fillStyle = "#000000";
+        octx.font = TEXT_WEIGHT + " " + TEXT_SIZE + "px " + FONT_FAMILY;
+        octx.textAlign = "center";
+        octx.textBaseline = "middle";
+        octx.fillText(text, w / 2, h / 2);
+
+        var data = octx.getImageData(0, 0, w, h).data;
+        var mask = new Uint8Array(w * h);
+        // Threshold at 200 so antialiased edge pixels count as glyph.
+        for (var i = 0; i < w * h; i++) mask[i] = data[i * 4] < 200 ? 1 : 0;
+
+        function isEdge(x, y) {
+          var idx = y * w + x;
+          if (mask[idx] !== 1) return false;
+          if (x === 0 || y === 0 || x === w - 1 || y === h - 1) return true;
+          return (
+            mask[idx - 1] === 0 || mask[idx + 1] === 0 || mask[idx - w] === 0 || mask[idx + w] === 0
+          );
+        }
+
+        // Connected edge components (8-neighbor flood)
+        var seen = new Uint8Array(w * h);
+        var components = [];
+        for (var y = 0; y < h; y++) {
+          for (var x = 0; x < w; x++) {
+            var idx0 = y * w + x;
+            if (seen[idx0] || !isEdge(x, y)) continue;
+            var comp = [];
+            var stack = [[x, y]];
+            while (stack.length) {
+              var c = stack.pop();
+              var ci = c[1] * w + c[0];
+              if (seen[ci]) continue;
+              seen[ci] = 1;
+              comp.push(c);
+              for (var dy = -1; dy <= 1; dy++) {
+                for (var dx = -1; dx <= 1; dx++) {
+                  if (dx === 0 && dy === 0) continue;
+                  var nx = c[0] + dx,
+                    ny = c[1] + dy;
+                  if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+                  if (seen[ny * w + nx] || !isEdge(nx, ny)) continue;
+                  stack.push([nx, ny]);
+                }
+              }
+            }
+            if (comp.length >= 4) components.push(comp);
+          }
+        }
+        if (components.length === 0) return [];
+
+        // Greedy nearest-neighbor walk turns each component into a polyline
+        function walkComponent(comp) {
+          var n = comp.length;
+          if (n <= 1) return comp.slice();
+          var taken = new Uint8Array(n);
+          var out = [];
+          var startIdx = 0;
+          for (var i2 = 1; i2 < n; i2++) {
+            if (
+              comp[i2][1] < comp[startIdx][1] ||
+              (comp[i2][1] === comp[startIdx][1] && comp[i2][0] < comp[startIdx][0])
+            ) {
+              startIdx = i2;
+            }
+          }
+          var curr = comp[startIdx];
+          taken[startIdx] = 1;
+          out.push(curr);
+          while (out.length < n) {
+            var bestI = -1,
+              bestD = Infinity;
+            for (var k = 0; k < n; k++) {
+              if (taken[k]) continue;
+              var ddx = comp[k][0] - curr[0],
+                ddy = comp[k][1] - curr[1];
+              var d = ddx * ddx + ddy * ddy;
+              if (d < bestD) {
+                bestD = d;
+                bestI = k;
+              }
+            }
+            if (bestI < 0 || bestD > 9) break;
+            taken[bestI] = 1;
+            curr = comp[bestI];
+            out.push(curr);
+          }
+          return out;
+        }
+
+        function polylineLength(poly) {
+          var len = 0;
+          for (var i2 = 1; i2 < poly.length; i2++) {
+            len += Math.hypot(poly[i2][0] - poly[i2 - 1][0], poly[i2][1] - poly[i2 - 1][1]);
+          }
+          return len;
+        }
+
+        function resampleEvenly(poly, n) {
+          if (n <= 0 || poly.length === 0) return [];
+          if (poly.length === 1 || n === 1) return [poly[0]];
+          var cum = new Float64Array(poly.length);
+          for (var i2 = 1; i2 < poly.length; i2++) {
+            cum[i2] =
+              cum[i2 - 1] +
+              Math.hypot(poly[i2][0] - poly[i2 - 1][0], poly[i2][1] - poly[i2 - 1][1]);
+          }
+          var total = cum[cum.length - 1];
+          if (total === 0) return [poly[0]];
+          var out = [];
+          var step = total / n;
+          var j2 = 1;
+          for (var k2 = 0; k2 < n; k2++) {
+            var t = k2 * step + step * 0.5;
+            while (j2 < cum.length - 1 && cum[j2] < t) j2++;
+            var t0 = cum[j2 - 1],
+              t1 = cum[j2];
+            var segT = t1 > t0 ? (t - t0) / (t1 - t0) : 0;
+            out.push([
+              poly[j2 - 1][0] + (poly[j2][0] - poly[j2 - 1][0]) * segT,
+              poly[j2 - 1][1] + (poly[j2][1] - poly[j2 - 1][1]) * segT,
+            ]);
+          }
+          return out;
+        }
+
+        var polylines = components.map(walkComponent);
+        var lengths = polylines.map(polylineLength);
+        var totalLen = 0;
+        for (var li = 0; li < lengths.length; li++) totalLen += lengths[li];
+        if (totalLen === 0) return [];
+
+        var verts = [];
+        var assigned = 0;
+        for (var pi = 0; pi < polylines.length; pi++) {
+          var isLast = pi === polylines.length - 1;
+          var share = isLast
+            ? vertexCount - assigned
+            : Math.round(vertexCount * (lengths[pi] / totalLen));
+          if (share <= 0) continue;
+          var samples = resampleEvenly(polylines[pi], share);
+          for (var si = 0; si < samples.length; si++) {
+            verts.push({ x: samples[si][0] - w / 2, y: samples[si][1] - h / 2 });
+          }
+          assigned += share;
+        }
+        return verts;
+      }
+
+      // Greedy 1:1 assignment of grid dots to text vertices, ascending distance
+      function snapGridToVertices(verts) {
+        var targets = new Float64Array(N * 2);
+        var snapped = new Uint8Array(N);
+        for (var i = 0; i < N; i++) {
+          targets[i * 2] = rest[i * 2];
+          targets[i * 2 + 1] = rest[i * 2 + 1];
+        }
+        var M = verts.length;
+        if (M === 0) return { targets: targets, snapped: snapped };
+
+        var total = N * M;
+        var pairD = new Float64Array(total);
+        for (var gi = 0; gi < N; gi++) {
+          var bx = rest[gi * 2],
+            by = rest[gi * 2 + 1];
+          for (var vi = 0; vi < M; vi++) {
+            var dx = bx - verts[vi].x,
+              dy = by - verts[vi].y;
+            pairD[gi * M + vi] = dx * dx + dy * dy;
+          }
+        }
+        var order = new Array(total);
+        for (var oi = 0; oi < total; oi++) order[oi] = oi;
+        order.sort(function (a, b) {
+          return pairD[a] - pairD[b];
+        });
+
+        var claimedG = new Uint8Array(N);
+        var claimedV = new Uint8Array(M);
+        var target = Math.min(N, M);
+        var claimed = 0;
+        for (var k = 0; k < total && claimed < target; k++) {
+          var gi2 = (order[k] / M) | 0;
+          var vi2 = order[k] % M;
+          if (claimedG[gi2] || claimedV[vi2]) continue;
+          claimedG[gi2] = 1;
+          claimedV[vi2] = 1;
+          targets[gi2 * 2] = verts[vi2].x;
+          targets[gi2 * 2 + 1] = verts[vi2].y;
+          snapped[gi2] = 1;
+          claimed++;
+        }
+        return { targets: targets, snapped: snapped };
+      }
+
+      function fitVertsToGrid(verts) {
+        if (verts.length === 0) return verts;
+        var halfW = ((COLS - 1) / 2) * SPACING;
+        var halfH = ((ROWS - 1) / 2) * SPACING;
+        var maxX = 0,
+          maxY = 0;
+        for (var i = 0; i < verts.length; i++) {
+          maxX = Math.max(maxX, Math.abs(verts[i].x));
+          maxY = Math.max(maxY, Math.abs(verts[i].y));
+        }
+        var margin = 0.82;
+        var s = 1;
+        if (maxX > 0) s = Math.min(s, (halfW * margin) / maxX);
+        if (maxY > 0) s = Math.min(s, (halfH * margin) / maxY);
+        if (s >= 1) return verts;
+        return verts.map(function (v) {
+          return { x: v.x * s, y: v.y * s };
+        });
+      }
+
+      // Word targets — rebuilt once real font metrics are available.
+      var targetA, snappedA, targetB, snappedB;
+      function buildWordTargets() {
+        var countA = Math.min(WORD_A.length * VERTS_PER_CHAR, MAX_VERTS);
+        var countB = Math.min(WORD_B.length * VERTS_PER_CHAR, MAX_VERTS);
+        var a = snapGridToVertices(fitVertsToGrid(sampleTextVertices(WORD_A, countA)));
+        var b = snapGridToVertices(fitVertsToGrid(sampleTextVertices(WORD_B, countB)));
+        targetA = a.targets;
+        snappedA = a.snapped;
+        targetB = b.targets;
+        snappedB = b.snapped;
+      }
+      buildWordTargets();
+
+      // ── Animated state ───────────────────────────────────────────────
+      // Per-dot journey segments. Position is a pure linear blend of the
+      // segment progresses, so elastic overshoot on any segment reads as a
+      // spring along that segment's direction:
+      //   xy = rest + s2·(A − rest) + s3·(B − A) + s4·(rest − B)
+      //   z  = DEPTH·(1 − s1)  (+ field displacements at render time)
+      var D = [];
+      var phase = new Float64Array(N); // idle-bob phase
+      var jitter = new Float64Array(N); // stagger jitter
+      for (var di = 0; di < N; di++) {
+        D.push({ s1: 0, s2: 0, s3: 0, s4: 0 });
+        phase[di] = rng() * Math.PI * 2;
+        jitter[di] = rng();
+      }
+
+      var S = {
+        progress: 0,
+        masterAlpha: 0,
+        lineAlpha: 0,
+        wordGlow: 0,
+        collapse: 0,
+        camX: 0,
+        camY: 0,
+        camRoll: 0,
+        cursorX: 0,
+        cursorY: 0,
+        cursorR: 330,
+        cursorForce: 0,
+        cursorDir: -1,
+      };
+
+      // ── Render (pure function of S and D) ────────────────────────────
+      var maxRadial = Math.hypot(((COLS - 1) / 2) * SPACING, ((ROWS - 1) / 2) * SPACING);
+
+      function project(x, y, z, out) {
+        var rx = x - S.camX;
+        var ry = y - S.camY;
+        var cosR = Math.cos(S.camRoll);
+        var sinR = Math.sin(S.camRoll);
+        var xr = rx * cosR - ry * sinR;
+        var yr = rx * sinR + ry * cosR;
+        var s = F / (F + z);
+        out.x = CX + xr * s;
+        out.y = CY + yr * s;
+        out.s = s;
+      }
+
+      var pf = { x: 0, y: 0, s: 0 };
+      var pb = { x: 0, y: 0, s: 0 };
+
+      function renderScene() {
+        var t = S.progress * DURATION;
+
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.fillStyle = BG_COLOR;
+        ctx.fillRect(0, 0, W, H);
+        if (S.masterAlpha <= 0.001) return;
+        ctx.globalAlpha = S.masterAlpha;
+
+        ctx.lineCap = "round";
+        ctx.lineWidth = 1.1;
+
+        // First pass computes positions; lines + glow draw beneath dots.
+        var fx = new Float64Array(N);
+        var fy = new Float64Array(N);
+        var fz = new Float64Array(N);
+        var glow = new Float64Array(N);
+
+        for (var i = 0; i < N; i++) {
+          var d = D[i];
+          var rx = rest[i * 2];
+          var ry = rest[i * 2 + 1];
+          var ax = targetA[i * 2];
+          var ay = targetA[i * 2 + 1];
+          var bx = targetB[i * 2];
+          var by = targetB[i * 2 + 1];
+
+          var x = rx + d.s2 * (ax - rx) + d.s3 * (bx - ax) + d.s4 * (rx - bx);
+          var y = ry + d.s2 * (ay - ry) + d.s3 * (by - ay) + d.s4 * (ry - by);
+          var z = DEPTH * (1 - d.s1);
+
+          // Idle breathing
+          z += Math.sin(t * 1.4 + phase[i]) * 7 * Math.min(1, d.s1);
+
+          // Cursor force field (instantaneous, falloff-shaped)
+          if (S.cursorForce > 0.001) {
+            var cdx = x - S.cursorX;
+            var cdy = y - S.cursorY;
+            var cd = Math.hypot(cdx, cdy);
+            if (cd < S.cursorR) {
+              var fall = 1 - cd / S.cursorR;
+              fall = fall * fall * (3 - 2 * fall); // smoothstep
+              var inv = 1 / Math.max(0.0001, cd);
+              // Per-dot phase makes the field feel sprung, not rigid
+              var lag = 1 + 0.12 * Math.sin(phase[i] + t * 2.1);
+              var push = S.cursorForce * fall * lag * 24;
+              // Attract never pulls a dot past the cursor center — cap the
+              // displacement at half its distance to avoid a collapsed knot
+              if (S.cursorDir < 0) push = Math.min(push, cd * 0.45);
+              x += cdx * inv * push * S.cursorDir;
+              y += cdy * inv * push * S.cursorDir;
+              z -= S.cursorForce * fall * 270 * lag;
+            }
+          }
+
+          // Final collapse pulls everything back to the far plane
+          z += S.collapse * (DEPTH - z);
+
+          fx[i] = x;
+          fy[i] = y;
+          fz[i] = z;
+
+          var c2 = Math.min(1, Math.max(0, d.s2));
+          var c3 = Math.min(1, Math.max(0, d.s3));
+          var c4 = Math.min(1, Math.max(0, d.s4));
+          var gA = snappedA[i] ? c2 * (1 - c3) : 0;
+          var gB = snappedB[i] ? c3 : 0;
+          glow[i] = Math.max(gA, gB) * (1 - c4) * S.wordGlow;
+        }
+
+        // Lines: back[i] → front[i], gradient fading into the background
+        var lineA = S.lineAlpha;
+        if (lineA > 0.003) {
+          for (var li = 0; li < N; li++) {
+            project(rest[li * 2], rest[li * 2 + 1], DEPTH, pb);
+            project(fx[li], fy[li], fz[li], pf);
+            var aFront = lineA * (0.22 + 0.5 * glow[li]);
+            var grad = ctx.createLinearGradient(pb.x, pb.y, pf.x, pf.y);
+            grad.addColorStop(0, rgba(DOT_RGB, 0));
+            grad.addColorStop(1, rgba(glow[li] > 0.15 ? ACCENT_RGB : DOT_RGB, aFront));
+            ctx.strokeStyle = grad;
+            ctx.beginPath();
+            ctx.moveTo(pb.x, pb.y);
+            ctx.lineTo(pf.x, pf.y);
+            ctx.stroke();
+          }
+        }
+
+        // Accent glow halos beneath word dots
+        if (S.wordGlow > 0.01) {
+          for (var hi = 0; hi < N; hi++) {
+            if (glow[hi] < 0.05) continue;
+            project(fx[hi], fy[hi], fz[hi], pf);
+            ctx.fillStyle = rgba(ACCENT_RGB, 0.1 * glow[hi]);
+            ctx.beginPath();
+            ctx.arc(pf.x, pf.y, 9 * pf.s, 0, Math.PI * 2);
+            ctx.fill();
+          }
+        }
+
+        // Front dots
+        for (var fi = 0; fi < N; fi++) {
+          project(fx[fi], fy[fi], fz[fi], pf);
+          var g = glow[fi];
+          var col = g > 0.01 ? mixRgb(DOT_RGB, ACCENT_RGB, g * 0.85) : DOT_RGB;
+          ctx.fillStyle = rgba(col, 0.5 + 0.5 * Math.min(1, D[fi].s1) - 0.25 * S.collapse);
+          ctx.beginPath();
+          ctx.arc(pf.x, pf.y, Math.max(0.4, (3.0 + 1.6 * g) * pf.s), 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        ctx.globalAlpha = 1;
+      }
+
+      // ── Stagger delay tables (seeded, deterministic) ─────────────────
+      var delayExtrude = new Float64Array(N);
+      var delayRelease = new Float64Array(N);
+      var delayFormA = new Float64Array(N);
+      var delayFormB = new Float64Array(N);
+      var gridHalfW = ((COLS - 1) / 2) * SPACING;
+
+      var WAVE1_START = 2.8;
+      var WAVE1_SPREAD = 2.2;
+      var WAVE2_START = 6.5;
+      var WAVE2_SPREAD = 2.0;
+
+      for (var si2 = 0; si2 < N; si2++) {
+        var radial = Math.hypot(rest[si2 * 2], rest[si2 * 2 + 1]) / maxRadial;
+        var sweep = (rest[si2 * 2] + gridHalfW) / (gridHalfW * 2);
+        delayExtrude[si2] = radial * 0.85 + jitter[si2] * 0.15;
+        delayRelease[si2] = (1 - radial) * 0.55 + jitter[si2] * 0.15;
+        delayFormA[si2] = WAVE1_START + sweep * WAVE1_SPREAD + jitter[si2] * 0.12;
+        delayFormB[si2] = WAVE2_START + (1 - sweep) * WAVE2_SPREAD + jitter[si2] * 0.12;
+      }
+
+      // ── Timeline ─────────────────────────────────────────────────────
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+      tl.eventCallback("onUpdate", renderScene);
+
+      tl.to(S, { progress: 1, duration: DURATION, ease: "none" }, 0);
+
+      // Camera drift
+      tl.to(S, { camX: 34, camY: -16, camRoll: 0.012, duration: 6.2, ease: "sine.inOut" }, 0.4);
+      tl.to(S, { camX: -26, camY: 12, camRoll: -0.01, duration: 5.3, ease: "sine.inOut" }, 6.65);
+
+      // 0.0–0.5  fade in
+      tl.to(S, { masterAlpha: 1, duration: 0.5, ease: "power1.out" }, 0);
+
+      // 0.6–2.4  front face extrudes from depth — the zoom
+      tl.to(S, { lineAlpha: 1, duration: 1.0, ease: "power1.inOut" }, 0.8);
+      tl.to(
+        D,
+        {
+          s1: 1,
+          duration: 1.3,
+          ease: "elastic.out(1, 0.55)",
+          stagger: function (index) {
+            return 0.6 + delayExtrude[index];
+          },
+        },
+        0,
+      );
+
+      // 2.5–5.3  wave 1 sweeps L→R, forming WORD_A in its wake
+      tl.set(S, { cursorX: -gridHalfW * 0.82, cursorY: 30, cursorDir: -1 }, 2.4);
+      tl.to(S, { cursorForce: 0.85, duration: 0.4, ease: "power2.out" }, 2.5);
+      tl.to(S, { cursorX: gridHalfW * 0.82, duration: 2.6, ease: "power1.inOut" }, 2.5);
+      tl.to(S, { cursorY: -30, duration: 1.3, ease: "sine.inOut" }, 2.5);
+      tl.to(S, { cursorY: 30, duration: 1.3, ease: "sine.inOut" }, 3.8);
+      tl.to(
+        D,
+        {
+          s2: 1,
+          duration: 0.9,
+          ease: "elastic.out(1, 0.5)",
+          stagger: function (index) {
+            return delayFormA[index];
+          },
+        },
+        0,
+      );
+      tl.to(S, { wordGlow: 1, duration: 1.0, ease: "power2.out" }, 3.2);
+
+      // 5.1–5.6  wave 1 fades
+      tl.to(S, { cursorForce: 0, duration: 0.5, ease: "power2.out" }, 5.1);
+
+      // 6.2–8.7  wave 2 sweeps R→L, morphing to WORD_B
+      tl.set(S, { cursorX: gridHalfW * 0.82, cursorY: -20, cursorDir: -1 }, 6.1);
+      tl.to(S, { cursorForce: 0.85, duration: 0.4, ease: "power2.out" }, 6.2);
+      tl.to(S, { cursorX: -gridHalfW * 0.82, duration: 2.4, ease: "power1.inOut" }, 6.2);
+      tl.to(S, { cursorY: 25, duration: 1.2, ease: "sine.inOut" }, 6.2);
+      tl.to(S, { cursorY: -20, duration: 1.2, ease: "sine.inOut" }, 7.4);
+      tl.to(
+        D,
+        {
+          s3: 1,
+          duration: 0.9,
+          ease: "elastic.out(1, 0.5)",
+          stagger: function (index) {
+            return delayFormB[index];
+          },
+        },
+        0,
+      );
+
+      // 8.6–9.0  wave 2 fades
+      tl.to(S, { cursorForce: 0, duration: 0.5, ease: "power2.out" }, 8.6);
+
+      // 10.0–11.5  release back into the lattice
+      tl.to(S, { wordGlow: 0, duration: 0.7, ease: "power1.inOut" }, 10.0);
+      tl.to(
+        D,
+        {
+          s4: 1,
+          duration: 0.9,
+          ease: "power3.inOut",
+          stagger: function (index) {
+            return 10.2 + delayRelease[index];
+          },
+        },
+        0,
+      );
+
+      // 11.0–12.0  collapse to depth + fade
+      tl.to(S, { collapse: 1, duration: 1.0, ease: "power2.in" }, 11.0);
+      tl.to(S, { lineAlpha: 0, duration: 0.8, ease: "power1.in" }, 11.0);
+      tl.to(S, { masterAlpha: 0, duration: 0.7, ease: "power1.in" }, 11.3);
+
+      window.__timelines["parallax-grid"] = tl;
+
+      // Glyph sampling may run before the web font arrives; resample with
+      // real metrics, then repaint the current frame in place.
+      if (document.fonts && document.fonts.ready) {
+        document.fonts.ready.then(function () {
+          buildWordTargets();
+          renderScene();
+        });
+      }
+
+      setTimeout(function () {
+        tl.seek(0);
+        renderScene();
+      }, 0);
+    </script>
+  </body>
+</html>

@@ -1,0 +1,41 @@
+{
+  "$schema": "https://hyperframes.heygen.com/schema/registry-item.json",
+  "name": "parallax-grid",
+  "type": "hyperframes:block",
+  "title": "Parallax Grid",
+  "description": "A spring-loaded 3D dot lattice extrudes from depth, snaps onto word outlines, morphs between words, and erupts with a cursor-driven shockwave.",
+  "stability": "experimental",
+  "dimensions": {
+    "width": 1920,
+    "height": 1080
+  },
+  "duration": 12,
+  "tags": ["canvas", "3d", "kinetic-type", "particles", "spring"],
+  "files": [
+    {
+      "path": "parallax-grid.html",
+      "target": "compositions/parallax-grid.html",
+      "type": "hyperframes:composition"
+    }
+  ],
+  "params": [
+    {
+      "key": "--bg-color",
+      "label": "Background",
+      "type": "color",
+      "default": "#06070b"
+    },
+    {
+      "key": "--dot-color",
+      "label": "Dot color",
+      "type": "color",
+      "default": "#dfe5ee"
+    },
+    {
+      "key": "--accent-color",
+      "label": "Accent",
+      "type": "color",
+      "default": "#7cc4ff"
+    }
+  ]
+}

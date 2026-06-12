@@ -1,0 +1,41 @@
+{
+  "$schema": "https://hyperframes.heygen.com/schema/registry-item.json",
+  "name": "dot-form-3d",
+  "type": "hyperframes:block",
+  "title": "Dot Form 3D",
+  "description": "A shadcn-style form lifts into a tilted 3D dot relief — typed characters erupt as dot columns, the focus ring extrudes, and a rainbow beam races the input border.",
+  "stability": "experimental",
+  "dimensions": {
+    "width": 1920,
+    "height": 1080
+  },
+  "duration": 13,
+  "tags": ["threejs", "webgl", "3d", "ui", "particles"],
+  "files": [
+    {
+      "path": "dot-form-3d.html",
+      "target": "compositions/dot-form-3d.html",
+      "type": "hyperframes:composition"
+    }
+  ],
+  "params": [
+    {
+      "key": "--bg-color",
+      "label": "Background (3D)",
+      "type": "color",
+      "default": "#07070d"
+    },
+    {
+      "key": "--dot-color",
+      "label": "Dot color",
+      "type": "color",
+      "default": "#e8ecf4"
+    },
+    {
+      "key": "--accent-color",
+      "label": "Accent",
+      "type": "color",
+      "default": "#3b82f6"
+    }
+  ]
+}

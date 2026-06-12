@@ -1,0 +1,631 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Dot Form 3D — Form Lifts Into a Dot Relief</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.147.0/build/three.min.js"></script>
+    <style>
+      *,
+      *::before,
+      *::after {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        background: #07070d;
+        overflow: hidden;
+      }
+      #root {
+        position: relative;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+        background: #07070d;
+      }
+      #df-canvas {
+        display: block;
+        position: absolute;
+        top: 0;
+        left: 0;
+      }
+      .df-vignette {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background: radial-gradient(
+          ellipse 115% 95% at 50% 45%,
+          transparent 58%,
+          rgba(0, 0, 0, 0.38) 100%
+        );
+      }
+      #df-fade {
+        position: absolute;
+        inset: 0;
+        background: #000;
+        pointer-events: none;
+        opacity: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="root"
+      data-composition-id="dot-form-3d"
+      data-width="1920"
+      data-height="1080"
+      data-start="0"
+      data-duration="13"
+      data-root="true"
+    >
+      <canvas id="df-canvas" width="1920" height="1080"></canvas>
+      <div class="df-vignette"></div>
+      <div id="df-fade"></div>
+      <div
+        id="df-driver"
+        class="clip"
+        data-start="0"
+        data-duration="13"
+        data-track-index="0"
+        style="position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none"
+      ></div>
+    </div>
+
+    <script>
+      var W = 1920,
+        H = 1080;
+      var DURATION = 13;
+
+      var root = document.getElementById("root");
+      var rootStyle = getComputedStyle(root);
+      function cssVar(name, fallback) {
+        var v = rootStyle.getPropertyValue(name).trim();
+        return v || fallback;
+      }
+
+      var BG_FLAT = cssVar("--bg-flat", "#fafafa");
+      var BG_FOCUSED = cssVar("--bg-color", "#07070d");
+      var DOT_COLOR = cssVar("--dot-color", "#e8ecf4");
+      var ACCENT = cssVar("--accent-color", "#3b82f6");
+
+      var LABEL_TEXT = "API Key";
+      var HELPER_TEXT = "Your API key is encrypted and stored securely.";
+      var KEY_TEXT = "sk-hyper-4f2a-9c1d-77b3";
+      var PHASE_A_CHARS = 9; // typed flat; the rest type after the lift
+
+      // ── Seeded PRNG (mulberry32) ─────────────────────────────────────
+      function mulberry32(seed) {
+        return function () {
+          seed |= 0;
+          seed = (seed + 0x6d2b79f5) | 0;
+          var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+      var rng = mulberry32(7331);
+
+      // Per-character type times (seconds), seeded jitter for human cadence
+      var CHAR_TIMES = [];
+      (function buildCharTimes() {
+        var t = 1.35;
+        for (var i = 0; i < KEY_TEXT.length; i++) {
+          if (i === PHASE_A_CHARS) t = 5.9; // typing resumes inside the 3D scene
+          CHAR_TIMES.push(t);
+          t += (i < PHASE_A_CHARS ? 0.2 : 0.22) + (rng() - 0.5) * 0.09;
+        }
+      })();
+      var INK_RAMP = 0.32; // seconds for a typed char to reach full ink (and full dot height)
+
+      // ── Form canvas: the light-themed form drawn as a pure function of time.
+      //    It is simultaneously the flat-mode visual and the dot height map
+      //    (dark pixels lift, light pixels stay at the floor).
+      var formCanvas = document.createElement("canvas");
+      formCanvas.width = W;
+      formCanvas.height = H;
+      var fctx = formCanvas.getContext("2d");
+
+      var FORM_X = 480,
+        FORM_W = 960;
+      var INPUT_Y = 430,
+        INPUT_H = 132,
+        INPUT_R = 20;
+      var KEY_FONT = '64px ui-monospace, "SF Mono", Menlo, monospace';
+      var charAdvance = 0;
+
+      function roundRectPath(c, x, y, w, h, r) {
+        c.beginPath();
+        c.moveTo(x + r, y);
+        c.arcTo(x + w, y, x + w, y + h, r);
+        c.arcTo(x + w, y + h, x, y + h, r);
+        c.arcTo(x, y + h, x, y, r);
+        c.arcTo(x, y, x + w, y, r);
+        c.closePath();
+      }
+
+      function mixHex(hexA, hexB, t) {
+        function parse(hx) {
+          return [
+            parseInt(hx.slice(1, 3), 16),
+            parseInt(hx.slice(3, 5), 16),
+            parseInt(hx.slice(5, 7), 16),
+          ];
+        }
+        var a = parse(hexA),
+          b = parse(hexB);
+        return (
+          "rgb(" +
+          Math.round(a[0] + (b[0] - a[0]) * t) +
+          ", " +
+          Math.round(a[1] + (b[1] - a[1]) * t) +
+          ", " +
+          Math.round(a[2] + (b[2] - a[2]) * t) +
+          ")"
+        );
+      }
+
+      function smooth01(x) {
+        x = Math.min(1, Math.max(0, x));
+        return x * x * (3 - 2 * x);
+      }
+
+      function drawForm(t, focusT) {
+        fctx.setTransform(1, 0, 0, 1, 0, 0);
+        fctx.fillStyle = "#fafafa";
+        fctx.fillRect(0, 0, W, H);
+
+        // Label
+        fctx.fillStyle = "#18181b";
+        fctx.font = '700 64px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        fctx.textAlign = "left";
+        fctx.textBaseline = "alphabetic";
+        fctx.fillText(LABEL_TEXT, FORM_X, INPUT_Y - 36);
+
+        // Focus ring
+        if (focusT > 0.01) {
+          roundRectPath(fctx, FORM_X - 4, INPUT_Y - 4, FORM_W + 8, INPUT_H + 8, INPUT_R + 4);
+          fctx.lineWidth = 7;
+          fctx.strokeStyle = "rgba(59, 130, 246, " + (0.28 * focusT).toFixed(3) + ")";
+          fctx.stroke();
+        }
+
+        // Input field
+        roundRectPath(fctx, FORM_X, INPUT_Y, FORM_W, INPUT_H, INPUT_R);
+        fctx.fillStyle = "#ffffff";
+        fctx.fill();
+        fctx.lineWidth = 4.5;
+        fctx.strokeStyle = mixHex("#c9c9cf", ACCENT, focusT);
+        fctx.stroke();
+
+        // Typed key, char by char with an ink ramp — the ramp is what makes
+        // dot columns rise smoothly instead of popping to full height.
+        fctx.font = KEY_FONT;
+        if (!charAdvance) charAdvance = fctx.measureText("0").width;
+        var textX = FORM_X + 32;
+        var textBaseline = INPUT_Y + 88;
+        var inkedCount = 0;
+        for (var i = 0; i < KEY_TEXT.length; i++) {
+          var ink = smooth01((t - CHAR_TIMES[i]) / INK_RAMP);
+          if (ink <= 0) break;
+          inkedCount = i + 1;
+          var cx = textX + i * charAdvance;
+          var pop = 1 + 0.3 * (1 - ink);
+          fctx.save();
+          fctx.translate(cx + charAdvance / 2, textBaseline - 22);
+          fctx.scale(pop, pop);
+          fctx.globalAlpha = ink * ink;
+          fctx.fillStyle = "#18181b";
+          fctx.fillText(KEY_TEXT[i], -charAdvance / 2, 22);
+          fctx.restore();
+        }
+
+        // Caret — sinusoidal pulse (never a hard blink) so the caret's dot
+        // column breathes up and down instead of popping.
+        if (focusT > 0.01) {
+          var pulse = 0.55 + 0.45 * Math.cos(t * Math.PI * 2 * 1.3);
+          fctx.globalAlpha = focusT * pulse;
+          fctx.fillStyle = "#18181b";
+          fctx.fillRect(textX + inkedCount * charAdvance + 5, textBaseline - 62, 5, 76);
+          fctx.globalAlpha = 1;
+        }
+
+        // Helper line
+        fctx.fillStyle = "#5b616e";
+        fctx.font = '40px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+        fctx.fillText(HELPER_TEXT, FORM_X, INPUT_Y + INPUT_H + 72);
+      }
+
+      // ── Three.js scene ───────────────────────────────────────────────
+      var canvas = document.getElementById("df-canvas");
+      var renderer = new THREE.WebGLRenderer({
+        canvas: canvas,
+        antialias: true,
+        preserveDrawingBuffer: true,
+      });
+      renderer.setSize(W, H, false);
+      renderer.setPixelRatio(1);
+
+      var scene = new THREE.Scene();
+      var FOV = 30;
+      var camera = new THREE.PerspectiveCamera(FOV, W / H, 0.05, 50);
+
+      var formTexture = new THREE.CanvasTexture(formCanvas);
+      formTexture.minFilter = THREE.LinearFilter;
+      formTexture.magFilter = THREE.LinearFilter;
+      formTexture.generateMipmaps = false;
+      formTexture.wrapS = THREE.ClampToEdgeWrapping;
+      formTexture.wrapT = THREE.ClampToEdgeWrapping;
+
+      // Visible area at z = 0 from the flat camera — sizes the plane + dot field
+      var FLAT_Z = 3.1;
+      var visH = 2 * Math.tan((FOV * Math.PI) / 360) * FLAT_Z;
+      var visW = visH * (W / H);
+
+      var formPlane = new THREE.Mesh(
+        new THREE.PlaneGeometry(visW, visH, 1, 1),
+        new THREE.MeshBasicMaterial({
+          map: formTexture,
+          transparent: true,
+          toneMapped: false,
+          side: THREE.DoubleSide,
+        }),
+      );
+      formPlane.renderOrder = 0;
+      scene.add(formPlane);
+
+      // Vertex shader: each grid vertex becomes a circular point sprite. The
+      // form texture drives the height field; a Gaussian-weighted 3x3 blur
+      // widens glyph edges into smooth bevels. Slope estimation feeds a fake
+      // directional light for shading.
+      var VERT_SHADER = [
+        "uniform sampler2D uForm;",
+        "uniform vec2 uFormSize;",
+        "uniform float uHeightScale;",
+        "uniform float uTime;",
+        "uniform float uPointSize;",
+        "uniform float uBlurRadius;",
+        "uniform float uFloorFadeStart;",
+        "uniform float uFloorFadeEnd;",
+        "uniform float uFloorPointSizeRatio;",
+        "uniform float uDensityLayer;",
+        "uniform float uHeightMult;",
+        "varying vec3 vFormColor;",
+        "varying vec2 vUv;",
+        "varying float vHeight;",
+        "varying float vLight;",
+        "varying float vLayerAlpha;",
+        "",
+        "float dotLum(vec3 c) { return dot(c, vec3(0.299, 0.587, 0.114)); }",
+        "",
+        "float sampleHeight(vec2 uvCoord) {",
+        "  vec3 c = texture2D(uForm, clamp(uvCoord, vec2(0.0), vec2(1.0))).rgb;",
+        "  return clamp(1.0 - dotLum(c), 0.0, 1.0);",
+        "}",
+        "",
+        "float sampleBlurredHeight(vec2 uvCoord) {",
+        "  vec2 stp = uBlurRadius / uFormSize;",
+        "  float h = sampleHeight(uvCoord) * 4.0;",
+        "  h += sampleHeight(uvCoord + vec2( stp.x, 0.0)) * 2.0;",
+        "  h += sampleHeight(uvCoord + vec2(-stp.x, 0.0)) * 2.0;",
+        "  h += sampleHeight(uvCoord + vec2( 0.0,  stp.y)) * 2.0;",
+        "  h += sampleHeight(uvCoord + vec2( 0.0, -stp.y)) * 2.0;",
+        "  h += sampleHeight(uvCoord + vec2( stp.x,  stp.y)) * 1.0;",
+        "  h += sampleHeight(uvCoord + vec2(-stp.x,  stp.y)) * 1.0;",
+        "  h += sampleHeight(uvCoord + vec2( stp.x, -stp.y)) * 1.0;",
+        "  h += sampleHeight(uvCoord + vec2(-stp.x, -stp.y)) * 1.0;",
+        "  return h / 16.0;",
+        "}",
+        "",
+        "void main() {",
+        "  vUv = uv;",
+        "  vFormColor = texture2D(uForm, clamp(uv, vec2(0.0), vec2(1.0))).rgb;",
+        "  float h = sampleBlurredHeight(uv);",
+        "  h = smoothstep(0.18, 0.55, h);",
+        "",
+        "  vec2 stp = max(uBlurRadius * 1.5, 1.0) / uFormSize;",
+        "  float hX = sampleHeight(uv + vec2(stp.x, 0.0)) - sampleHeight(uv - vec2(stp.x, 0.0));",
+        "  float hY = sampleHeight(uv + vec2(0.0, stp.y)) - sampleHeight(uv - vec2(0.0, stp.y));",
+        "  vec3 n = normalize(vec3(-hX * 4.0, -hY * 4.0, 0.1));",
+        "  vec3 nView = normalize((modelViewMatrix * vec4(n, 0.0)).xyz);",
+        "  vLight = clamp(dot(nView, normalize(vec3(0.2, 0.5, 1.0))), 0.0, 1.0);",
+        "",
+        "  float wobble = sin(position.x * 14.0 + uTime * 0.7) * 0.04",
+        "               + cos(position.y * 22.0 + uTime * 0.5) * 0.04;",
+        "  float lift = (h + wobble * h) * uHeightScale * uHeightMult;",
+        "  vHeight = lift;",
+        "  vec3 displaced = position + vec3(0.0, 0.0, lift);",
+        "  vec4 mv = modelViewMatrix * vec4(displaced, 1.0);",
+        "",
+        "  float floorEnd = max(uFloorFadeEnd, uFloorFadeStart + 0.0001);",
+        "  float heightT = smoothstep(uFloorFadeStart, floorEnd, lift);",
+        "  vLayerAlpha = mix(1.0 - heightT, heightT, uDensityLayer);",
+        "  float sizeMult = mix(uFloorPointSizeRatio, mix(uFloorPointSizeRatio, 1.0, heightT), uDensityLayer);",
+        "",
+        "  gl_PointSize = uPointSize * sizeMult * (1.0 / max(0.001, -mv.z));",
+        "  gl_Position = projectionMatrix * mv;",
+        "}",
+      ].join("\n");
+
+      // Fragment shader: circular sprite mask, chroma-aware tinting (colored
+      // pixels in the form bleed into the dots), height-based opacity, and a
+      // rainbow beam head racing the input-rect perimeter.
+      var FRAG_SHADER = [
+        "precision highp float;",
+        "uniform vec3 uDotColor;",
+        "uniform float uFloorFadeStart;",
+        "uniform float uFloorFadeEnd;",
+        "uniform float uFloorOpacity;",
+        "uniform float uTransitionAlpha;",
+        "uniform float uColorAlpha;",
+        "uniform vec4 uInputRect;",
+        "uniform float uBeamStrength;",
+        "uniform float uBeamT;",
+        "uniform vec2 uFormSize;",
+        "varying vec3 vFormColor;",
+        "varying vec2 vUv;",
+        "varying float vHeight;",
+        "varying float vLight;",
+        "varying float vLayerAlpha;",
+        "",
+        "void main() {",
+        "  if (vLayerAlpha < 0.005) discard;",
+        "  vec2 d = gl_PointCoord - 0.5;",
+        "  float r = length(d);",
+        "  if (r > 0.5) discard;",
+        "  float edge = smoothstep(0.5, 0.4, r);",
+        "",
+        "  float maxC = max(vFormColor.r, max(vFormColor.g, vFormColor.b));",
+        "  float minC = min(vFormColor.r, min(vFormColor.g, vFormColor.b));",
+        "  float saturation = maxC - minC;",
+        "  float chromaMask = smoothstep(0.025, 0.12, saturation);",
+        "  float neutralDetailMask = smoothstep(0.03, 0.16, 1.0 - maxC)",
+        "                          * smoothstep(0.06, 0.25, minC);",
+        "  float colorMask = max(chromaMask, neutralDetailMask);",
+        "  vec3 baseDotColor = mix(uDotColor, vFormColor, colorMask * uColorAlpha);",
+        "",
+        "  vec2 p = vec2(vUv.x * uFormSize.x, (1.0 - vUv.y) * uFormSize.y);",
+        "  vec2 rectMin = uInputRect.xy;",
+        "  vec2 rectMax = uInputRect.zw;",
+        "  vec2 rectSize = max(vec2(1.0), rectMax - rectMin);",
+        "  vec2 clamped = clamp(p, rectMin, rectMax);",
+        "  float distToRect = length(p - clamped);",
+        "  float distToEdge = min(",
+        "    min(abs(p.x - rectMin.x), abs(p.x - rectMax.x)),",
+        "    min(abs(p.y - rectMin.y), abs(p.y - rectMax.y))",
+        "  );",
+        "  float aroundRect = 1.0 - smoothstep(0.0, 14.0, distToRect);",
+        "  float borderBand = 1.0 - smoothstep(0.0, 12.0, distToEdge);",
+        "",
+        "  float sideTop = 1.0 - step(0.001, abs(abs(p.y - rectMin.y) - distToEdge));",
+        "  float sideRight = (1.0 - sideTop) * (1.0 - step(0.001, abs(abs(p.x - rectMax.x) - distToEdge)));",
+        "  float sideBottom = (1.0 - sideTop) * (1.0 - sideRight) * (1.0 - step(0.001, abs(abs(p.y - rectMax.y) - distToEdge)));",
+        "  float sideLeft = (1.0 - sideTop) * (1.0 - sideRight) * (1.0 - sideBottom);",
+        "  float perimeter =",
+        "    sideTop * ((p.x - rectMin.x) / rectSize.x * 0.25) +",
+        "    sideRight * (0.25 + (p.y - rectMin.y) / rectSize.y * 0.25) +",
+        "    sideBottom * (0.5 + (rectMax.x - p.x) / rectSize.x * 0.25) +",
+        "    sideLeft * (0.75 + (rectMax.y - p.y) / rectSize.y * 0.25);",
+        "  float beamD = abs(fract(perimeter - uBeamT + 0.5) - 0.5);",
+        "  float beamHead = 1.0 - smoothstep(0.0, 0.18, beamD);",
+        "  float beamMask = aroundRect * borderBand * beamHead * uBeamStrength;",
+        "  vec3 beamColor = mix(",
+        "    mix(vec3(1.0, 0.20, 0.40), vec3(0.16, 0.55, 1.0), smoothstep(0.0, 0.5, beamD)),",
+        "    vec3(0.94, 0.20, 0.71),",
+        "    smoothstep(0.5, 1.0, fract(uBeamT + perimeter))",
+        "  );",
+        "  baseDotColor = mix(baseDotColor, beamColor, beamMask);",
+        "",
+        "  vec3 color = baseDotColor * (0.68 + 0.32 * vLight);",
+        "  color += vec3(0.22) * smoothstep(0.04, 0.5, vHeight);",
+        "",
+        "  float floorEnd = max(uFloorFadeEnd, uFloorFadeStart + 0.0001);",
+        "  float heightT = smoothstep(uFloorFadeStart, floorEnd, vHeight);",
+        "  float opacityMult = mix(uFloorOpacity, 1.0, heightT);",
+        "",
+        "  float alpha = edge * opacityMult * vLayerAlpha * uTransitionAlpha;",
+        "  if (alpha < 0.005) discard;",
+        "  gl_FragColor = vec4(color, alpha);",
+        "}",
+      ].join("\n");
+
+      var HEIGHT_SCALE = 0.34;
+      var FLOOR_FADE_START = 0.02;
+      var FLOOR_FADE_END = 0.1;
+
+      function createDotMaterial(densityLayer) {
+        return new THREE.ShaderMaterial({
+          vertexShader: VERT_SHADER,
+          fragmentShader: FRAG_SHADER,
+          uniforms: {
+            uForm: { value: formTexture },
+            uFormSize: { value: new THREE.Vector2(W, H) },
+            uHeightScale: { value: HEIGHT_SCALE },
+            uTime: { value: 0 },
+            uPointSize: { value: 12.5 },
+            uBlurRadius: { value: 1.8 },
+            uFloorFadeStart: { value: FLOOR_FADE_START },
+            uFloorFadeEnd: { value: FLOOR_FADE_END },
+            uFloorPointSizeRatio: { value: 0.6 },
+            uFloorOpacity: { value: 0.18 },
+            uDensityLayer: { value: densityLayer },
+            uHeightMult: { value: 1.0 },
+            uTransitionAlpha: { value: 0.0 },
+            uColorAlpha: { value: 0.0 },
+            uInputRect: {
+              value: new THREE.Vector4(FORM_X, INPUT_Y, FORM_X + FORM_W, INPUT_Y + INPUT_H),
+            },
+            uBeamStrength: { value: 0.0 },
+            uBeamT: { value: 0.0 },
+            uDotColor: { value: new THREE.Color(DOT_COLOR) },
+          },
+          transparent: true,
+          depthWrite: false,
+        });
+      }
+
+      function createDotGrid(cols) {
+        var rows = Math.max(4, Math.round(cols * (H / W)));
+        var positions = new Float32Array(cols * rows * 3);
+        var uvs = new Float32Array(cols * rows * 2);
+        for (var y = 0; y < rows; y++) {
+          for (var x = 0; x < cols; x++) {
+            var i = y * cols + x;
+            var u = (x + 0.5) / cols;
+            var v = (y + 0.5) / rows;
+            positions[i * 3] = (u - 0.5) * visW;
+            positions[i * 3 + 1] = (v - 0.5) * visH;
+            positions[i * 3 + 2] = 0;
+            uvs[i * 2] = u;
+            uvs[i * 2 + 1] = v;
+          }
+        }
+        var geom = new THREE.BufferGeometry();
+        geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+        geom.setAttribute("uv", new THREE.BufferAttribute(uvs, 2));
+        return geom;
+      }
+
+      // Sparse floor grid + dense raised grid crossfade by sampled height —
+      // density increases exactly where the relief rises, with no random thinning.
+      var floorMaterial = createDotMaterial(0);
+      var raisedMaterial = createDotMaterial(1);
+      var floorPoints = new THREE.Points(createDotGrid(88), floorMaterial);
+      floorPoints.position.z = 0.001;
+      floorPoints.renderOrder = 1;
+      scene.add(floorPoints);
+      var raisedPoints = new THREE.Points(createDotGrid(480), raisedMaterial);
+      raisedPoints.position.z = 0.002;
+      raisedPoints.renderOrder = 2;
+      scene.add(raisedPoints);
+
+      // ── Camera rig: three keyed poses blended by tweened mixes ───────
+      // The input rect sits slightly above world center — look targets aim there
+      var CAM = {
+        flat: { pos: [0, 0, FLAT_Z], look: [0, 0, 0], roll: 0, zoom: 1 },
+        focused: { pos: [0, -0.5, 1.65], look: [0, 0.05, 0], roll: -0.04, zoom: 1.75 },
+        hero: { pos: [0.22, -0.6, 1.5], look: [0.03, 0.06, 0.02], roll: -0.06, zoom: 1.85 },
+      };
+
+      var bgFlatColor = new THREE.Color(BG_FLAT);
+      var bgFocusedColor = new THREE.Color(BG_FOCUSED);
+      var bgScratch = new THREE.Color();
+
+      // ── Animated state (all motion lives here; render is pure) ──────
+      var S = {
+        progress: 0,
+        focusT: 0,
+        formAlpha: 1,
+        dotAlpha: 0,
+        bgMix: 0,
+        camMix: 0,
+        heroMix: 0,
+        camPanX: 0,
+        heightMult: 1,
+        beamStrength: 0,
+      };
+
+      function lerp(a, b, t) {
+        return a + (b - a) * t;
+      }
+
+      function renderScene() {
+        var t = S.progress * DURATION;
+
+        drawForm(t, S.focusT);
+        formTexture.needsUpdate = true;
+
+        // Camera: flat → focused → hero, plus a lateral drift offset
+        var m1 = S.camMix,
+          m2 = S.heroMix;
+        var px =
+          lerp(lerp(CAM.flat.pos[0], CAM.focused.pos[0], m1), CAM.hero.pos[0], m2) + S.camPanX;
+        var py = lerp(lerp(CAM.flat.pos[1], CAM.focused.pos[1], m1), CAM.hero.pos[1], m2);
+        var pz = lerp(lerp(CAM.flat.pos[2], CAM.focused.pos[2], m1), CAM.hero.pos[2], m2);
+        var lx =
+          lerp(lerp(CAM.flat.look[0], CAM.focused.look[0], m1), CAM.hero.look[0], m2) +
+          S.camPanX * 0.5;
+        var ly = lerp(lerp(CAM.flat.look[1], CAM.focused.look[1], m1), CAM.hero.look[1], m2);
+        var lz = lerp(lerp(CAM.flat.look[2], CAM.focused.look[2], m1), CAM.hero.look[2], m2);
+        var roll = lerp(lerp(CAM.flat.roll, CAM.focused.roll, m1), CAM.hero.roll, m2);
+        var zoom = lerp(lerp(CAM.flat.zoom, CAM.focused.zoom, m1), CAM.hero.zoom, m2);
+
+        camera.position.set(px, py, pz);
+        camera.lookAt(lx, ly, lz);
+        camera.rotateZ(roll);
+        camera.fov = FOV / zoom;
+        camera.updateProjectionMatrix();
+
+        bgScratch.copy(bgFlatColor).lerp(bgFocusedColor, S.bgMix);
+        renderer.setClearColor(bgScratch, 1);
+
+        formPlane.material.opacity = S.formAlpha;
+        formPlane.visible = S.formAlpha > 0.003;
+
+        var beamT = t > 5.6 ? ((t - 5.6) / 2.4) % 1 : 0;
+        var mats = [floorMaterial, raisedMaterial];
+        for (var i = 0; i < mats.length; i++) {
+          var u = mats[i].uniforms;
+          u.uTime.value = t;
+          u.uHeightMult.value = S.heightMult;
+          u.uTransitionAlpha.value = S.dotAlpha;
+          u.uColorAlpha.value = S.camMix;
+          u.uBeamStrength.value = S.beamStrength;
+          u.uBeamT.value = beamT;
+        }
+
+        renderer.render(scene, camera);
+      }
+
+      // ── Timeline ─────────────────────────────────────────────────────
+      window.__timelines = window.__timelines || {};
+      var tl = gsap.timeline({ paused: true });
+      tl.eventCallback("onUpdate", renderScene);
+
+      tl.to(S, { progress: 1, duration: DURATION, ease: "none" }, 0);
+
+      // 0–0.6  fade up from black onto the flat form
+      tl.to("#df-fade", { opacity: 0, duration: 0.6, ease: "power1.inOut" }, 0);
+
+      // 0.9  the input takes focus: ring + accent border rise into the relief later
+      tl.to(S, { focusT: 1, duration: 0.4, ease: "power2.out" }, 0.9);
+
+      // (typing happens inside drawForm via CHAR_TIMES — chars 0..8 land flat)
+
+      // 3.7–5.5  THE LIFT — the page falls away and the form becomes terrain:
+      // background crossfades dark, the flat plane dissolves, dots spike to
+      // 2.3× height and elastically settle while the camera dives to a tilt.
+      tl.to(S, { bgMix: 1, duration: 1.1, ease: "power2.inOut" }, 3.7);
+      tl.to(S, { dotAlpha: 1, duration: 0.7, ease: "power1.inOut" }, 3.75);
+      tl.to(S, { formAlpha: 0, duration: 0.7, ease: "power1.inOut" }, 3.85);
+      tl.set(S, { heightMult: 3.5 }, 3.75);
+      tl.to(S, { heightMult: 0.88, duration: 2.0, ease: "elastic.out(1.1, 0.42)" }, 3.9);
+      tl.to(S, { camMix: 1, duration: 1.7, ease: "power3.inOut" }, 3.8);
+
+      // 5.7  the border beam ignites and races the input perimeter
+      tl.to(S, { beamStrength: 0.85, duration: 0.6, ease: "power1.inOut" }, 5.7);
+
+      // 5.9–8.7  typing resumes in 3D — each char erupts as a dot column
+      // (driven by CHAR_TIMES inside drawForm)
+
+      // 6.0–10.6  slow lateral drift while the relief types itself out
+      tl.to(S, { camPanX: 0.16, duration: 2.6, ease: "sine.inOut" }, 6.0);
+      tl.to(S, { camPanX: -0.05, duration: 2.0, ease: "sine.inOut" }, 8.65);
+
+      // 10.6–11.9  hero move: low grazing angle across the dot terrain
+      tl.to(S, { heroMix: 1, duration: 1.3, ease: "power2.inOut" }, 10.6);
+      tl.to(S, { beamStrength: 1.2, duration: 0.8, ease: "power1.inOut" }, 11.0);
+
+      // 12.35–13  close on black
+      tl.to("#df-fade", { opacity: 1, duration: 0.65, ease: "power1.inOut" }, 12.35);
+
+      window.__timelines["dot-form-3d"] = tl;
+
+      setTimeout(function () {
+        tl.seek(0);
+        renderScene();
+      }, 0);
+    </script>
+  </body>
+</html>
