@@ -107,8 +107,12 @@ There's also a file copy of this same starter at `skills/website-to-hyperframes/
     /* Scope every selector with a beat-prefix class (e.g. .bN-title) so styles
        can't leak into sibling beat compositions. */
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    .bN-root { width: 1920px; height: 1080px; position: relative; overflow: hidden; background: #YOUR_BG; }
-    .bN-title { font-size: 96px; line-height: 1.05; font-weight: 700; color: #YOUR_FG; }
+    /* DO NOT set `background:` on .bN-root — sub-comp root background CSS does
+       NOT paint at render time. Use a full-bleed child div (`.bN-bg`) instead.
+       See landmine "Sub-comp root background doesn't paint" below. */
+    .bN-root { width: 1920px; height: 1080px; position: relative; overflow: hidden; }
+    .bN-bg   { position: absolute; inset: 0; background: #YOUR_BG; z-index: 0; }
+    .bN-title { font-size: 96px; line-height: 1.05; font-weight: 700; color: #YOUR_FG; position: relative; z-index: 1; }
     /* …your beat-scoped styles… */
   </style>
 
@@ -121,6 +125,9 @@ There's also a file copy of this same starter at `skills/website-to-hyperframes/
     data-height="1080"
     data-duration="5.5"
   >
+    <!-- Full-bleed background div (NOT the root). Paints at render time
+         where root `background:` does not. -->
+    <div class="bN-bg"></div>
     <!-- Subject visible in DOM via inline style="opacity:1" — overrides any CSS opacity:0,
          lets your timeline animate transforms only (avoids the frame-0 black trap). -->
     <h1 class="bN-title" style="opacity:1" data-layout-role="primary">YOUR HEADLINE</h1>
@@ -241,7 +248,26 @@ The linter and check-compositions scan with regex; a `<template>` or `<style>` o
 
 w2h does CSS crossfades between sub-comp beats at the orchestrator level (`assemble-index.mjs` wires them via `shader_transitions`). **Don't author per-beat exit animations** — hold the final frame steady, let the next beat's entrance carry the cut. Exit tweens inside a beat double-blend with the orchestrator's crossfade and produce the "scene dipping then re-entering" visual artifact. Exception: the closing beat (no `next_beat_handoff` in your dispatch packet) MAY fade out for the CTA-to-end transition.
 
-### 8. Alive, not active — no frozen readable text
+### 8. Sub-comp root `background:` doesn't paint — use a full-bleed child div
+
+The root `<div data-composition-id="...">` is the host element the assembler inserts into `index.html`. CSS like `.bN-root { background: #000; }` will NOT paint in the rendered video — the renderer composites against transparency at the host level. Studio preview paints the root background fine (which is what makes this insidious); only the MP4 render skips it.
+
+```html
+<!-- ❌ BAD: background on the root won't paint at render time -->
+<div data-composition-id="beat-6-cta" style="background: #050507;">
+  <h1>...</h1>
+</div>
+
+<!-- ✅ GOOD: full-bleed child paints the background -->
+<div data-composition-id="beat-6-cta">
+  <div style="position: absolute; inset: 0; background: #050507; z-index: 0;"></div>
+  <h1 style="position: relative; z-index: 1;">...</h1>
+</div>
+```
+
+Same rule for gradients, images, or any `background-*` property on the root. The Step 2 starter template above ([line](#step-2-build-the-composition)) already follows this pattern — `.bN-root` has no `background:`, and a separate `.bN-bg { position: absolute; inset: 0; background: ... }` div carries it. If you build from scratch instead of copying the template, mirror that structure. Mirrors step-5-build.md landmine #10 — same rule, different reader.
+
+### 9. Alive, not active — no frozen readable text
 
 Every readable element (label, wordmark, value, headline) on screen must have visible-at-video-scale motion carrying it from entrance to exit. The failure mode this rule names — observed in a recent huly opener — is: agent enters a label, then holds it for ~2s with an `opacity 0.85 → 1.0` "breath" thinking that keeps it alive. At 1920×1080 a 15% opacity oscillation is invisible; the label reads as completely frozen.
 
