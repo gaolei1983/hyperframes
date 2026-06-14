@@ -19,8 +19,21 @@ const scriptDir = dirname(fileURLToPath(import.meta.url));
 // esbuild's CJS interop (__require) works correctly in ESM output.
 // Without this, bundled CJS deps (recast, yauzl, etc.) that call
 // require("fs") throw "Dynamic require of 'fs' is not supported".
+//
+// It also reconstructs the CommonJS `__dirname` / `__filename` globals from
+// import.meta.url. Bundled CJS deps (notably the ffmpeg/Emscripten wasm glue,
+// which does `scriptDirectory = __dirname + "/"`) reference bare `__dirname`,
+// which does not exist in ESM scope — without this shim they throw
+// "__dirname is not defined in ES module scope" at render time.
 const cjsBanner = {
-  js: "import { createRequire as __cjsRequire } from 'module'; const require = __cjsRequire(import.meta.url);",
+  js: [
+    "import { createRequire as __cjsRequire } from 'module';",
+    "import { fileURLToPath as __fileURLToPath } from 'url';",
+    "import { dirname as __pathDirname } from 'path';",
+    "const require = __cjsRequire(import.meta.url);",
+    "const __filename = __fileURLToPath(import.meta.url);",
+    "const __dirname = __pathDirname(__filename);",
+  ].join(" "),
 };
 
 const workspaceAliasPlugin = {
