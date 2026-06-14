@@ -79,6 +79,28 @@ export function findHtmlTag(source: string): OpenTag | null {
   };
 }
 
+/**
+ * Replace ranges of `src` matched by `pattern` with same-length space runs so
+ * downstream regex offsets stay stable but the matched content is invisible
+ * to subsequent tag extraction. Used to neutralize comments / style+script
+ * block contents that could otherwise look like real opening tags (e.g.
+ * `/* example: <video> *​/` inside a <style> block would be matched as a
+ * root tag by the bare TAG_PATTERN — observed on a real heygen-showcase run
+ * where a beat shipped two false-positive `root_missing_*` lint errors).
+ */
+function maskRanges(src: string, pattern: RegExp): string {
+  const p = new RegExp(
+    pattern.source,
+    pattern.flags.includes("g") ? pattern.flags : pattern.flags + "g",
+  );
+  let out = src;
+  let m: RegExpExecArray | null;
+  while ((m = p.exec(out)) !== null) {
+    out = out.slice(0, m.index) + " ".repeat(m[0].length) + out.slice(m.index + m[0].length);
+  }
+  return out;
+}
+
 export function findRootTag(source: string): OpenTag | null {
   const bodyOpenMatch = /<body\b[^>]*>/i.exec(source);
   const bodyCloseMatch = /<\/body>/i.exec(source);
@@ -88,7 +110,15 @@ export function findRootTag(source: string): OpenTag | null {
       ? bodyCloseMatch.index
       : source.length;
   const bodyContent = bodyOpenMatch ? source.slice(bodyStart, bodyEnd) : source;
-  const bodyTags = extractOpenTags(bodyContent);
+  // Mask comment / style / script ranges so a `<video>` token written
+  // inside a CSS or HTML comment doesn't get picked as the composition's
+  // root tag. Same-length space substitution preserves offsets so the
+  // returned tag's `.index` still points at the real position in `source`.
+  const masked = maskRanges(
+    maskRanges(maskRanges(bodyContent, /<!--[\s\S]*?-->/g), STYLE_BLOCK_PATTERN),
+    SCRIPT_BLOCK_PATTERN,
+  );
+  const bodyTags = extractOpenTags(masked);
   for (const tag of bodyTags) {
     if (["script", "style", "meta", "link", "title"].includes(tag.name)) continue;
     return { ...tag, index: tag.index + bodyStart };
