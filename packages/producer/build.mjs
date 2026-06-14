@@ -15,12 +15,16 @@ mkdirSync("dist", { recursive: true });
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 
-// The banner provides a real `require` function via createRequire so that
-// esbuild's CJS interop (__require) works correctly in ESM output.
-// Without this, bundled CJS deps (recast, yauzl, etc.) that call
-// require("fs") throw "Dynamic require of 'fs' is not supported".
+// Shim `require` + `__dirname` / `__filename` for bundled CJS deps that expect them in ESM scope.
 const cjsBanner = {
-  js: "import { createRequire as __cjsRequire } from 'module'; const require = __cjsRequire(import.meta.url);",
+  js: [
+    "import { createRequire as __cjsRequire } from 'module';",
+    "import { fileURLToPath as __fileURLToPath } from 'url';",
+    "import { dirname as __pathDirname } from 'path';",
+    "const require = __cjsRequire(import.meta.url);",
+    "const __filename = __fileURLToPath(import.meta.url);",
+    "const __dirname = __pathDirname(__filename);",
+  ].join(" "),
 };
 
 const workspaceAliasPlugin = {
