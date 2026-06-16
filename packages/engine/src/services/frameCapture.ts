@@ -391,11 +391,26 @@ async function initDrawElementOrTransparentBackground(
     const fps = fpsToNumber(session.options.fps);
     const stats = await computeStaticFrameSet(page, fps);
     if (stats.eligible && stats.staticFrameSet.size > 0) {
-      session.staticFrames = stats.staticFrameSet;
-      logInitPhase(
-        `static-frame dedup: ${stats.staticFrameSet.size}/${stats.totalFrames} frame(s) reusable ` +
-          `(${Math.round((stats.staticFrameSet.size / stats.totalFrames) * 100)}%)`,
-      );
+      // Backstop: empirically verify a sample before trusting the prediction. Catches
+      // hidden (non-GSAP, non-clip) animation the static predictor can't see. Skip
+      // with HF_STATIC_DEDUP_VERIFY=false (faster, prediction-only — unsafe).
+      const samples = Number(process.env.HF_STATIC_DEDUP_SAMPLES ?? "24");
+      const badFrame =
+        process.env.HF_STATIC_DEDUP_VERIFY === "false"
+          ? null
+          : await verifyStaticFramesSafe(session, page, stats.staticFrameSet, fps, samples);
+      if (badFrame !== null) {
+        logInitPhase(
+          `static-frame dedup: disabled (verification failed — content changed across ` +
+            `predicted-static frame ${badFrame}; hidden non-GSAP/non-clip animation)`,
+        );
+      } else {
+        session.staticFrames = stats.staticFrameSet;
+        logInitPhase(
+          `static-frame dedup: ${stats.staticFrameSet.size}/${stats.totalFrames} frame(s) reusable ` +
+            `(${Math.round((stats.staticFrameSet.size / stats.totalFrames) * 100)}%, verified)`,
+        );
+      }
     } else {
       logInitPhase(`static-frame dedup: disabled (${stats.reason})`);
     }
@@ -1874,6 +1889,67 @@ async function computeStaticFrameSet(
     eligible,
     reason: eligible ? "eligible" : reasons.join("+"),
   };
+}
+
+/**
+ * Task B safety backstop: empirically verify the predicted-static set before trusting
+ * it. `computeStaticFrameSet` predicts static frames from GSAP timelines + clip cuts,
+ * but animation outside `window.__timelines` (CSS transition on class change, raw-rAF
+ * style mutation, a canvas that draws only at playback) is invisible to it and would
+ * freeze. So sample predicted-static frames, capture each and its predecessor, and
+ * byte-compare (the screenshot path is bit-deterministic, so a truly static frame is
+ * byte-identical to its predecessor). Any mismatch ⇒ hidden animation ⇒ this comp is
+ * unsafe to dedup; the caller disables it whole-comp. Runs at init in normal DOM state
+ * (before the drawElement canvas is injected), so it is capture-mode independent.
+ *
+ * Sparse sampling: hidden animation in these comps is systemic (e.g. every scene
+ * transition), so a spread of ~`sampleCount` probes reliably trips on at least one.
+ * Returns the first mismatching frame, or null if all sampled pairs are identical.
+ */
+async function verifyStaticFramesSafe(
+  session: CaptureSession,
+  page: Page,
+  staticFrames: Set<number>,
+  fps: number,
+  sampleCount: number,
+): Promise<number | null> {
+  const frames = [...staticFrames].sort((a, b) => a - b);
+  if (frames.length === 0) return null;
+  // Sample = run-starts (first static frame of each run, where the predecessor is NOT
+  // static — i.e. right after an animated/boundary region, where a trailing CSS/settle
+  // animation the GSAP walker can't see would hide) PLUS an even spread (for systemic
+  // hidden animation). Run-start targeting is the cheap high-value probe; even spread
+  // is the backstop's backstop. Sampling can't catch an arbitrary mid-run content
+  // change that has no deterministic signal — that is the documented residual.
+  const sampleSet = new Set<number>();
+  for (const f of frames) {
+    if (!staticFrames.has(f - 1)) {
+      sampleSet.add(f); // run-start
+      if (staticFrames.has(f + 1)) sampleSet.add(f + 1); // and the next, to catch a 2-frame settle
+    }
+  }
+  const k = Math.min(frames.length, sampleCount);
+  const step = frames.length / k;
+  for (let i = 0; i < k; i++) {
+    const f = frames[Math.floor(i * step)];
+    if (f !== undefined) sampleSet.add(f);
+  }
+  const samples = [...sampleSet].sort((a, b) => a - b);
+  const seekCapture = async (frameIdx: number): Promise<Buffer> => {
+    const t = quantizeTimeToFrame(frameIdx / fps, fps);
+    await page.evaluate((tt: number) => {
+      const hf = (window as unknown as { __hf?: { seek?: (t: number) => void } }).__hf;
+      if (hf && typeof hf.seek === "function") hf.seek(tt);
+    }, t);
+    return pageScreenshotCapture(page, session.options);
+  };
+  for (const f of samples) {
+    if (f < 1) continue;
+    const prev = await seekCapture(f - 1);
+    const cur = await seekCapture(f);
+    if (!prev.equals(cur)) return f; // content changed across a "static" frame → unsafe
+  }
+  return null;
 }
 
 /**
