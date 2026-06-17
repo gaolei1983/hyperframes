@@ -48,7 +48,7 @@ if [[ ! -f "$PROJECT/index.html" ]]; then
     echo "[render] no index.html — auto-compiling via make-cinematic.cjs"
     node "$(dirname "$0")/make-cinematic.cjs" "$PROJECT"
   else
-    echo "[render] missing $PROJECT/index.html and standard.json/plan.json/cinematic.json — author + compile first" >&2
+    echo "[render] missing $PROJECT/index.html and plan.json/cinematic.json — author + compile first" >&2
     exit 1
   fi
 elif [[ -f "$PROJECT/cinematic.json" && "$PROJECT/cinematic.json" -nt "$PROJECT/index.html" ]]; then
@@ -150,7 +150,7 @@ if [[ ! -f "$PROJECT/plan.json" && -f "$PROJECT/index.html" && -f "$(dirname "$0
 fi
 # rail.html gets NO other automated coverage (the occlusion gate only reads plan.json
 # caps) — run its overflow check whenever it exists. Was dead code inside the
-# no-plan.json branch: Standard always HAS a derived plan.json, so it never ran.
+# no-plan.json branch: rail-surface renders always HAVE a plan.json, so it never ran.
 if [[ -f "$PROJECT/rail.html" && -f "$(dirname "$0")/check-overflow.cjs" ]]; then
   if node "$(dirname "$0")/check-overflow.cjs" "$PROJECT" rail.html; then
     echo "overflow(rail)    PASS" >> "$GATES"
@@ -160,14 +160,14 @@ if [[ -f "$PROJECT/rail.html" && -f "$(dirname "$0")/check-overflow.cjs" ]]; the
   fi
 fi
 
-# Standard hand-off gate: the PROMOTED climax word must NOT also be revealed in the
-# rail during the climax's on-screen window (PIPELINE.md "Rail ↔ climax hand-off").
+# Rail hand-off gate: the PROMOTED climax word must NOT also be revealed in the
+# rail during the climax's on-screen window (the rail ↔ climax hand-off).
 # Hard-fails on a CONFIRMED duplicate; infra issues (no puppeteer, etc.) exit 0 and
 # never block. Override with RAIL_CLIMAX_SKIP=1 for a deliberate exception.
 if [[ -f "$PROJECT/rail.html" && -f "$PROJECT/index.html" && -f "$(dirname "$0")/check-rail-climax.cjs" ]]; then
   if ! node "$(dirname "$0")/check-rail-climax.cjs" "$PROJECT"; then
     echo "[render] ABORTED — the promoted climax word is duplicated in the rail." >&2
-    echo "         Apply the rail↔climax hand-off (PIPELINE.md), then re-run." >&2
+    echo "         Apply the rail↔climax hand-off, then re-run." >&2
     echo "         Override: RAIL_CLIMAX_SKIP=1 bash render-and-composite.sh <project>" >&2
     if [[ "${RAIL_CLIMAX_SKIP:-0}" != "1" ]]; then
       exit 2
@@ -324,7 +324,7 @@ if [[ -f "$PROJECT/index_fg.html" ]]; then
   if (( BG_RC != 0 )); then echo "[render] bg render failed" >&2; exit 1; fi
   if (( FG_RC != 0 )); then echo "[render] fg render failed" >&2; exit 1; fi
 elif [[ -f "$PROJECT/rail.html" ]]; then
-  # Standard mode: TWO independent hyperframes passes (base = index.html with the
+  # Rail-surface render: TWO independent hyperframes passes (base = index.html with the
   # embed; rail = rail.html transparent). Each renders from its own shadow dir (the
   # multiple-root ambiguity), and they share no state — run them IN PARALLEL like
   # the fg-hybrid above (~halves the Chromium wall time). The rail webm is consumed
@@ -374,7 +374,7 @@ echo "[render] clamp output to source/matte length: ${MATTE_DUR}s"
 # Bug-1 guard: the background plate ($BG) must be at least the matte/source length,
 # else the tail (where the bg ran out but the matte continues) shows ONLY the
 # foreground subject on black. Cinematic auto-fixes this (make-composition sets the
-# canvas = source length); this catches a hand-authored Standard duration set to the
+# canvas = source length); this catches a hand-authored duration set to the
 # last-caption time instead of the clip length. Clamp to the bg length so we never
 # ship the only-foreground tail, and tell the author the real fix.
 if [[ -f "$BG" ]]; then

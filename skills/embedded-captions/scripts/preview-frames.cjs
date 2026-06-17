@@ -17,7 +17,7 @@
  * SKILL.md § Visual QA. (Video elements show poster/first-frame in the screenshot;
  * the REAL a-roll pixels come from frames_bg, so previews stay accurate.)
  *
- * Sample-time default: climax/groups midpoints from standard.json or plan.json,
+ * Sample-time default: climax/groups midpoints from theme.json or plan.json,
  * else 25/50/75% of the clip.
  */
 const path = require("path");

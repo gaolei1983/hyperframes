@@ -52,7 +52,7 @@ if (!puppeteer) {
 
 async function main() {
   const projectDir = process.argv[2];
-  const htmlName = process.argv[3] || "index.html"; // Standard mode passes "rail.html" to gate the rail too
+  const htmlName = process.argv[3] || "index.html"; // rail-surface identities pass "rail.html" to gate the rail too
   const indexPath = path.resolve(projectDir, htmlName);
   if (!fs.existsSync(indexPath)) {
     console.error(`[overflow] missing ${indexPath}`);

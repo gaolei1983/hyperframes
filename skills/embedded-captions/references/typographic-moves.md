@@ -197,8 +197,8 @@ The DNA defaults prevent most ugly outcomes. But avoid in per-group CSS:
 This DNA assumes mid-to-dark backgrounds (luminance 60-180). For:
 
 - Bright white studios → cinematic-cream's cream + `screen` washes out, and the DNA is
-  **locked** (you cannot recolour it) → use **Standard mode** (opaque rail) instead
-- Documentary formal → Standard mode (documentary-dignified direction; see references/direction-catalog.md §1)
+  **locked** (you cannot recolour it) → use the **`anchor` theme** or **`ink`** (opaque rail / letterpress) instead
+- Documentary formal → the **`documentary`** column-flow identity (see references/direction-catalog.md §1)
 - Energetic vlog hooks → future `kinetic-vlog` DNA (not yet shipped)
 
 ## Example: memory-wall original, expressed in freeform

@@ -250,7 +250,7 @@ function main() {
   }
   if (plan.mode === "standard") {
     console.error(
-      "[compile] mode=standard — this plan.json is DERIVED by make-standard.cjs; compile Standard projects with make-standard.cjs (from standard.json), not this script.",
+      "[compile] mode=standard — the Standard rail engine was retired 2026-06-12; re-author this clip as a theme (e.g. the `anchor` identity) and compile with make-theme.cjs.",
     );
     process.exit(1);
   }

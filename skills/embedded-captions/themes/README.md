@@ -1,7 +1,7 @@
 # THEME mode — composed visual constitutions
 
-Theme mode is the third compiler (`scripts/make-theme.cjs`), beside Standard and
-Cinematic. It exists because "mode" was a bundle of orthogonal axes pretending
+Theme mode is a compiler (`scripts/make-theme.cjs`) beside Cinematic (the Standard
+rail engine was retired 2026-06-12; `anchor` carries its rail×embed-climax role). It exists because "mode" was a bundle of orthogonal axes pretending
 to be one switch. A theme DNA composes its identity from registries implemented
 ONCE in the compiler — **paradigms are the unit of code; DNAs are the unit of
 identity**. A new look is a JSON file; only a genuinely new paradigm/setpiece
@@ -25,11 +25,11 @@ Cinematic remains a separate compiler; do not re-implement it as a theme yet.
 
 The user-facing model is already unified (SKILL.md Step 0): one catalog of
 LOOKS; classic looks pick a DELIVERY (rail | column), themed looks bind their
-own. "Standard/Cinematic" are delivery/compiler names, not modes. Remaining
+own. "Cinematic/Theme" are delivery/compiler names, not modes (the Standard rail engine was retired 2026-06-12; `anchor` replaced it). Remaining
 phases, each gated on need — never rewrite for tidiness alone:
 
 - **Phase 2 — one authoring schema.** `lines`/`minors`/`hero` are already
-  ~90% shared between standard.json and theme.json; a router that translates a
+  ~90% shared between cinematic.json and theme.json; a router that translates a
   single `caption.json` into the engine-specific file removes the last
   user-visible seam. cinematic.json's blocks/planes are the odd one — map the
   common fields, pass engine-specific ones through.

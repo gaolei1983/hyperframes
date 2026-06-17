@@ -1,6 +1,6 @@
 # Aesthetic Principles for Cinematic Captions
 
-The 18 rules that separate "designed" caption work from "preset-generated" caption work. This is the single most important reference in the skill — every plan.json and every Standard-mode HTML should be checked against these before committing.
+The 18 rules that separate "designed" caption work from "preset-generated" caption work. This is the single most important reference in the skill — every plan.json and every theme's HTML should be checked against these before committing.
 
 The whole competitive thesis: every AI caption tool in 2026 (Veed, Submagic, Opus Clip, Captions.ai, CapCut) is a **preset picker**. They hand the user a box of crayons. This skill is a **director** — it exercises judgment. Beat them on taste, not feature count.
 

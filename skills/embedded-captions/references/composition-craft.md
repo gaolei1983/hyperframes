@@ -4,7 +4,7 @@ This is the deep "how to lay a caption INTO the scene" manual — it governs the
 track only (captions composited behind the subject). The default **rail** track (standard
 lower-third subtitle, where most text lives) has its own, much simpler spec → [rail.md](rail.md).
 Read this before authoring any **promoted** phrase, in either authoring mode (template
-Cinematic `plan.json` or Standard `index.html`).
+Cinematic `plan.json` or a theme's `theme.json`).
 
 Topics: phrase grouping, planes & clean-zone anchoring, zone coherence, climax pop,
 readability, edge breathing, the occlusion 3-step judgement, accumulation, and persistence.
@@ -93,7 +93,7 @@ The viewer's eye reads top-to-bottom: first the partially-veiled body line ("dec
 
 Two timing modes inside this layout:
 
-- **Sequential cross-fade (default)** — body fades out as climax fades in over 0.3-0.5s. The brief overlap window IS the editorial dual-layer moment. Standard cinematic-cream behavior.
+- **Sequential cross-fade (default)** — body fades out as climax fades in over 0.3-0.5s. The brief overlap window IS the editorial dual-layer moment. The default cinematic-cream behavior.
 - **Sustained overlap** — extend body's `out` to coincide with or extend past climax's `in` so both are visible together for 1-2s. Use sparingly: works when body line is short (≤3 words) and acts as a "kicker" above the climax. Long body phrases sustained alongside a fg climax = visual noise.
 
 **The plane-conflict rule for sustained overlap (debugged in Startup_Host).** If you extend a body bg cap's `out` into a window that contains another cap with `layer: "fg"` IN THE SAME PLANE, the two will visually overlap in the final composite — bg pass renders the extended bg cap, fg pass renders the fg cap, both at identical plane position, screen-blended on top of each other. Result: muddy double-text at the same spot.

@@ -737,7 +737,7 @@ const MULBERRY = `function mulberry32(a){return function(){a|=0;a=(a+0x6D2B79F5)
 
 // bundled @font-face subset for this DNA's families — the renderer only
 // auto-supplies its canonical fonts; anything else silently falls back unless
-// the page ships a local @font-face (same determinism contract as Standard).
+// the page ships a local @font-face (same determinism contract as Cinematic).
 const FONT_FACES = (() => {
   let css = "";
   try {

@@ -33,7 +33,7 @@ done
 For every new template or significant change, re-run the test set and
 verify:
 
-- [ ] Sunset_Stroll: captions legible on bright sunset (Cinematic cream/screen washes out → use **Standard mode**, opaque rail)
+- [ ] Sunset_Stroll: captions legible on bright sunset (Cinematic cream/screen washes out → use **`anchor`** or **`ink`**, opaque surfaces)
 - [ ] Nature_Vibe: captions don't collide with baked timestamp (bottom-left) or watermark
 - [ ] Gym_Grind: captions visible on dark gym despite dark subject
 - [ ] AI_Insights: captions don't fight with "THE DIALOG" neon sign

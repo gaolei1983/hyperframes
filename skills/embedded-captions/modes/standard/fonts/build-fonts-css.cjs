@@ -2,7 +2,7 @@
 /*
  * build-fonts-css.cjs — bundle the template fonts into ONE self-contained
  * fonts.css with base64 data-URI @font-face (no sub-resources, no CDN, no
- * system-font dependency). This is what makes Standard/Cinematic renders
+ * system-font dependency). This is what makes Cinematic/Theme renders
  * deterministic on ANY machine: hyperframes' renderer only auto-supplies its
  * ~18 CANONICAL_FONTS; every other family falls back to a generic font unless
  * the HTML ships a local @font-face. (hyperframes' own font linter says exactly

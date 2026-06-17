@@ -2,7 +2,7 @@
 
 This is the skill's single selection surface. **The user picks an IDENTITY from
 this table; everything else (engine, compiler, authoring file) is derived by
-lookup — never ask the user (or yourself) "Standard or Cinematic or Theme?"**
+lookup — never ask the user (or yourself) which engine or "mode" to use**
 Those are backend names; a product has one UX even when it has several engines.
 
 Routing procedure (replaces any mode decision):
@@ -101,5 +101,5 @@ frame vs energetic type that still shares the frame with the subject).
   DNA's `deliveries.rail` flag (see dna/README.md).
 - New identities join via their family's registry rules (dna/README.md for
   classic, themes/README.md for themed — "any input, zero hand-fixing" bar).
-- The engines' internals (Standard/Cinematic/Theme compilers, gates, layers)
+- The engines' internals (Cinematic/Theme compilers, gates, layers)
   are documented in their own files; this catalog is the only routing surface.

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /*
- * check-rail-climax.cjs — enforce the Rail ↔ climax hand-off (PIPELINE.md).
+ * check-rail-climax.cjs — enforce the Rail ↔ climax hand-off.
  *
  *   node check-rail-climax.cjs <project-dir>
  *
@@ -9,7 +9,7 @@
  * (the climax) and rail.html (the verbatim rail) in headless Chromium, finds the
  * climax's on-screen window + its word(s), then checks whether the rail reveals
  * any of those same words DURING that window. If it does, the promoted word is
- * duplicated on screen → exit 2 (the render aborts). Standard mode only.
+ * duplicated on screen → exit 2 (the render aborts). Rail-surface identities only.
  *
  * Conservative by design: only a CONFIRMED duplicate fails. Anything we can't
  * determine (no rail.html, no puppeteer, timeline never registers, no climax)
@@ -153,7 +153,7 @@ async function main() {
   const indexPath = path.join(project, "index.html");
   const railPath = path.join(project, "rail.html");
   if (!fs.existsSync(railPath) || !fs.existsSync(indexPath))
-    ok("[rail-climax] no rail.html+index.html — not Standard, skipping");
+    ok("[rail-climax] no rail.html+index.html — not a rail-surface render, skipping");
   if (!puppeteer) ok("[rail-climax] puppeteer unavailable — skipping (set HYPERFRAMES_ROOT)");
 
   const exe =
@@ -213,7 +213,7 @@ async function main() {
         `[rail-climax] ✗ DUPLICATE PROMOTED WORD: the climax word(s) ${[...climaxTokens].map((w) => `"${w}"`).join(", ")} ` +
           `are on screen during the climax window [${winIn.toFixed(2)}–${winOut.toFixed(2)}s], ` +
           `and the rail ALSO reveals: ${list}.\n` +
-          `  The promoted word must be handed off, never duplicated — see PIPELINE.md "Rail ↔ climax hand-off":\n` +
+          `  The promoted word must be handed off, never duplicated (rail ↔ climax hand-off):\n` +
           `  freeze the rail before the promoted word, let the climax carry it, hold the climax across the rail's\n` +
           `  page-flip, and exit it at the end of the thought. The rail must never reveal the promoted word.`,
       );

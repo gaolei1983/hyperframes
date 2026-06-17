@@ -66,13 +66,13 @@ The `"style": "1"` field becomes `class="cap-1"` on the element — any string w
 
 So use the caption-region luminance to **choose** a template that already fits — never to recolour one:
 
-| Region luminance                  | What fits                                                                                     | Why                                                                        |
-| --------------------------------- | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| < 60 (dark / low-key)             | a cream + `screen` template (`cinematic-cream`, `memory-wall`, `champion`, `portrait-header`) | light text glows, picks up the scene                                       |
-| 60–180 (mid-tone)                 | a cream + `screen` template still reads (add a scrim via Standard if marginal)                | text picks up texture                                                      |
-| > 180 (bright: window, pale wall) | **none of the cream/`screen` Cinematic templates — they wash out**                            | → use **Standard mode** (opaque rail, set per the chosen template) instead |
+| Region luminance                  | What fits                                                                                     | Why                                                                                         |
+| --------------------------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| < 60 (dark / low-key)             | a cream + `screen` template (`cinematic-cream`, `memory-wall`, `champion`, `portrait-header`) | light text glows, picks up the scene                                                        |
+| 60–180 (mid-tone)                 | a cream + `screen` template still reads (add a scrim if marginal)                             | text picks up texture                                                                       |
+| > 180 (bright: window, pale wall) | **none of the cream/`screen` Cinematic templates — they wash out**                            | → use the **`anchor` theme** or **`ink`** (opaque surfaces built for bright scenes) instead |
 
-If the scene is bright and the cream/`screen` look washes out, that's the signal to switch to **Standard mode** (which sets opaque colour in the HTML), not to recolour a Cinematic template into something it isn't.
+If the scene is bright and the cream/`screen` look washes out, that's the signal to switch to the **`anchor` theme** or **`ink`** (opaque surfaces built for bright scenes), not to recolour a Cinematic template into something it isn't.
 
 ### "Hanging indent / outdent / letter-width tweak"
 
