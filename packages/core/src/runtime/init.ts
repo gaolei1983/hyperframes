@@ -410,23 +410,6 @@ export function initSandboxRuntimeModular(): void {
     return resolveStartForElement(element, fallback);
   };
 
-  const findTimedClipAncestor = (
-    element: HTMLElement,
-    rootComp: HTMLElement | null,
-  ): HTMLElement | null => {
-    let node = element.parentElement;
-    while (node) {
-      // rootComp may be null when no composition is mounted; the walk still
-      // terminates via `while (node)` — node === null is never true here.
-      if (node === rootComp) break;
-      if (node.hasAttribute("data-start")) {
-        return node;
-      }
-      node = node.parentElement;
-    }
-    return null;
-  };
-
   const isTimedElementVisibleAt = (rawNode: HTMLElement, currentTime: number): boolean => {
     const tag = rawNode.tagName.toLowerCase();
     if (tag === "script" || tag === "style" || tag === "link" || tag === "meta") {
@@ -1073,6 +1056,21 @@ export function initSandboxRuntimeModular(): void {
       const dur = String(rootDuration > 0 ? rootDuration : 1);
       const seen = new Set<Element>();
 
+      // Only an AUTHORED clip (data-start already in the source, captured before
+      // we stamp anything) should suppress stamping its descendants. An animated
+      // scene container we auto-stamp below (e.g. an opacity-crossfaded scene)
+      // must NOT suppress its own animated children — otherwise those children
+      // never become timeline clips and that scene can't inline-expand.
+      const authoredTimed = new Set<Element>(document.querySelectorAll("[data-start]"));
+      const hasAuthoredTimedAncestor = (element: HTMLElement): boolean => {
+        let node = element.parentElement;
+        while (node && node !== rootComp) {
+          if (authoredTimed.has(node)) return true;
+          node = node.parentElement;
+        }
+        return false;
+      };
+
       // Stamp GSAP-targeted elements
       if (state.capturedTimeline.getChildren) {
         try {
@@ -1082,7 +1080,7 @@ export function initSandboxRuntimeModular(): void {
               if (!(target instanceof HTMLElement)) continue;
               if (target === rootComp) continue;
               if (target.hasAttribute("data-start")) continue;
-              if (findTimedClipAncestor(target, rootComp)) continue;
+              if (hasAuthoredTimedAncestor(target)) continue;
               if (seen.has(target)) continue;
               seen.add(target);
               target.setAttribute("data-start", "0");
@@ -1102,7 +1100,7 @@ export function initSandboxRuntimeModular(): void {
           if (!(el instanceof HTMLElement)) continue;
           if (el === rootComp) continue;
           if (el.hasAttribute("data-start")) continue;
-          if (findTimedClipAncestor(el, rootComp)) continue;
+          if (hasAuthoredTimedAncestor(el)) continue;
           if (seen.has(el)) continue;
           if (el.tagName === "SCRIPT" || el.tagName === "STYLE" || el.tagName === "LINK") continue;
           seen.add(el);
@@ -1439,6 +1437,36 @@ export function initSandboxRuntimeModular(): void {
   };
 
   // fallow-ignore-next-line complexity
+  // Whether a timed clip participates in normal flow (static/relative/sticky).
+  // In-flow clips must leave the flow when hidden — `visibility:hidden` reserves
+  // their layout box, so a split sibling would stack below the active half
+  // instead of overlapping it. Positioned clips keep `visibility:hidden` (cheaper,
+  // and avoids disturbing absolute media playback). Computed once per element.
+  const timedClipInFlow = new WeakMap<Element, boolean>();
+  const isTimedClipInFlow = (el: HTMLElement): boolean => {
+    const cached = timedClipInFlow.get(el);
+    if (cached !== undefined) return cached;
+    const pos = window.getComputedStyle(el).position;
+    const inFlow = pos === "static" || pos === "relative" || pos === "sticky";
+    timedClipInFlow.set(el, inFlow);
+    return inFlow;
+  };
+
+  // `display:none` is only safe on a LEAF timed clip (no nested timed clips). On a
+  // container it removes the whole subtree, hiding descendants that are still inside
+  // their OWN visibility window — e.g. an in-flow composition root whose window
+  // clamps to the timeline end would black out a child video that should still
+  // show. `visibility:hidden` doesn't have this problem (a child can override it
+  // with `visibility:visible`), so containers keep that and only leaves leave-flow.
+  const timedClipIsLeaf = new WeakMap<Element, boolean>();
+  const isTimedClipLeaf = (el: HTMLElement): boolean => {
+    const cached = timedClipIsLeaf.get(el);
+    if (cached !== undefined) return cached;
+    const leaf = el.querySelector("[data-start]") === null;
+    timedClipIsLeaf.set(el, leaf);
+    return leaf;
+  };
+
   const syncMediaForCurrentState = () => {
     const resolveMediaCompositionContext = (element: HTMLVideoElement | HTMLAudioElement) => {
       const compositionRoot = element.closest("[data-composition-id]");
@@ -1543,6 +1571,11 @@ export function initSandboxRuntimeModular(): void {
       rawNode.style.visibility = isVisibleNow ? "visible" : "hidden";
       if (rawNode instanceof HTMLVideoElement || rawNode instanceof HTMLImageElement) {
         colorGradingRuntime?.setSourceVisibility(rawNode, isVisibleNow);
+      }
+      if (isVisibleNow) {
+        if (timedClipInFlow.get(rawNode)) rawNode.style.removeProperty("display");
+      } else if (isTimedClipInFlow(rawNode) && isTimedClipLeaf(rawNode)) {
+        rawNode.style.display = "none";
       }
     }
   };
