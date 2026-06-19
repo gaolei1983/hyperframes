@@ -200,7 +200,7 @@ This DNA assumes mid-to-dark backgrounds (the cream/`screen` luma band — see t
 
 - Bright white studios → cinematic-cream's cream + `screen` washes out, and the DNA is
   **locked** (no recolour — see [../SKILL.md](../SKILL.md) § Non-negotiables) → use the **`anchor` theme** or **`ink`** (opaque rail / letterpress) instead
-- Documentary formal → the **`documentary`** column-flow identity (see references/direction-catalog.md §1)
+- Documentary formal → the **`documentary`** column-flow identity
 - Energetic vlog hooks → future `kinetic-vlog` DNA (not yet shipped)
 
 ## Example: memory-wall original, expressed in freeform

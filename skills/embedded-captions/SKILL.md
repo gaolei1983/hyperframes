@@ -208,7 +208,7 @@ Classify the clip on 3 axes and feed the result into CATALOG.md's shortlisting �
 
 - 9:16 portrait (TikTok/IG/Shorts) | 16:9 landscape (YouTube/web) | 1:1 square | broadcast export
 
-Cross-reference in [references/direction-catalog.md § Classification matrix](references/direction-catalog.md) for direction language — then return to [CATALOG.md](CATALOG.md) to shortlist identities (this matrix informs the shortlist; the catalog is the only routing surface).
+Cross-reference the **tone × shot × platform crosswalk** in [CATALOG.md](CATALOG.md) for direction language — it informs the shortlist; the catalog is the only routing surface.
 
 ## Composition craft (embed track) — read before embedding
 
@@ -230,8 +230,6 @@ track has its own, much simpler spec → **[references/rail.md](references/rail.
 | [dna/README.md](dna/README.md)                                           | **The DNA registry** — ten scene-parameterized visual languages; how to pick.                                                                 |
 | [references/reference-bar.md](references/reference-bar.md)               | **The taste bar** — per-register world-class references + the 5 positive checks.                                                              |
 | [references/aesthetic-principles.md](references/aesthetic-principles.md) | **The 18 rules.** Beat Veed AI on taste. Read first.                                                                                          |
-| [references/motion-vocabulary.md](references/motion-vocabulary.md)       | 10 named motion primitives + tone→timing lookup                                                                                               |
-| [references/direction-catalog.md](references/direction-catalog.md)       | 10 ship-ready aesthetics + tone×shot×platform matrix                                                                                          |
 | [references/anti-patterns.md](references/anti-patterns.md)               | Bugs already locked out (CoreML, letter-spacing reflow, etc.)                                                                                 |
 | [references/layout-heuristics.md](references/layout-heuristics.md)       | Step 0 embed-viability gate (is a surface usable — 4 conditions); plane positioning, clean-zone selection, crown 3 conditions, pillarbox math |
 | [references/typography-presets.md](references/typography-presets.md)     | Font-size × column-width matrix (starting points)                                                                                             |
@@ -239,7 +237,7 @@ track has its own, much simpler spec → **[references/rail.md](references/rail.
 | [references/failure-modes.md](references/failure-modes.md)               | Long tail of dev gotchas                                                                                                                      |
 | [references/bespoke-vs-presets.md](references/bespoke-vs-presets.md)     | Why presets fail sometimes; clone-and-tweak pattern                                                                                           |
 
-**Read the aesthetic principles and direction catalog FIRST.** Everything else is implementation detail.
+**Read the aesthetic principles FIRST.** Everything else is implementation detail.
 
 ---
 

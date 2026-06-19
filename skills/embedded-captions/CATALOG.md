@@ -14,6 +14,20 @@ Routing procedure (replaces any mode decision):
 4. Author the identity's file (last column), then render with its engine's
    pipeline. Done — no category question ever surfaced.
 
+### Tone × shot × platform — direction crosswalk (shortlisting aid)
+
+A pre-shortlist input for step 2: intersect the clip's register with the delivery platform to get a **direction**, then pick the CATALOG identity of that register from the table below (documentary → `documentary` / `anchor`; keynote → `keynote`; poetic → `cream`; conversational → a cinematic column-flow or a rail theme; energetic → a loud theme). The cells are direction labels, not identity names; when none fits cleanly → **`anchor`**.
+
+| Tone ↓ / Platform → | 9:16 portrait                            | 16:9 landscape           | 1:1 square               |
+| ------------------- | ---------------------------------------- | ------------------------ | ------------------------ |
+| **Documentary**     | documentary-dignified (vertical variant) | documentary-dignified    | broadcast-dignified      |
+| **Conversational**  | portrait-header + default                | memory-wall OR champion  | broadcast-dignified      |
+| **Energetic**       | high-energy-vlog                         | high-energy-vlog-wide    | high-energy-vlog-sq      |
+| **Poetic**          | lyrical-poem-on-wall (portrait)          | lyrical-poem-on-wall     | chapter-card             |
+| **Keynote/tech**    | — (9:16 not ideal)                       | tech-keynote-confident   | tech-keynote-confident   |
+| **Investigative**   | —                                        | investigative-typewriter | investigative-typewriter |
+| **Music video**     | k-pop-lyric                              | k-pop-lyric              | k-pop-lyric              |
+
 ## Identities
 
 | Identity        | Reading surface                                          | Voice (one line)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               | Recommend for                                                                                                                                                                                                                                    | Scene needs                                                                                                                                                                           | Author → engine                 |

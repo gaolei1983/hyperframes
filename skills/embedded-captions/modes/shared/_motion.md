@@ -9,6 +9,8 @@ metadata:
 
 `_anatomy.md` wires four hooks onto one paused timeline: `FLOW_IN`, `FLOW_OUT`, `CLIMAX_IN`, `CLIMAX_OUT`. This file is the catalog each template picks from. Each recipe is a GSAP tween on the climax `span` (or a flow `.w`); placed at an absolute time it is fully **seek-safe**. Multi-stage looks use GSAP `keyframes:{}` (still seek-safe) — never CSS keyframes.
 
+**A palette, not a cage.** Pick the entry by mood (the mood→entrance table below) and **by content tone — never default every group to one move**. When a scene genuinely demands a move this catalog lacks, invent one — as long as it stays deterministic + seek-safe and animates transform/opacity only (the reflow rule, [\_anatomy.md](_anatomy.md)).
+
 ## Numerics (shared)
 
 **Ease palette** (sanctioned — reads clean on video, stays distinct):
