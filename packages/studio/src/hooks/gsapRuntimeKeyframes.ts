@@ -12,17 +12,19 @@ import { buildArcPath, type ArcPathConfig } from "@hyperframes/core/gsap-parser-
 import { parsePercentageKeyframes, toAbsoluteTime } from "./gsapShared";
 import { roundTo3 } from "../utils/rounding";
 
-interface RuntimeTween {
+export interface RuntimeTween {
   targets?: () => Element[];
   vars?: Record<string, unknown>;
   duration?: () => number;
   startTime?: () => number;
+  invalidate?: () => RuntimeTween;
 }
 
-interface RuntimeTimeline {
+export interface RuntimeTimeline {
   getChildren?: (deep: boolean) => RuntimeTween[];
   duration?: () => number;
   time?: () => number;
+  invalidate?: () => RuntimeTimeline;
 }
 
 type Pct = { percentage: number; properties: Record<string, number | string> };
@@ -56,7 +58,9 @@ const FLAT_SKIP_KEYS = new Set([
   "keyframes",
 ]);
 
-function timelinesOf(iframe: HTMLIFrameElement | null): Record<string, RuntimeTimeline> | null {
+export function timelinesOf(
+  iframe: HTMLIFrameElement | null,
+): Record<string, RuntimeTimeline> | null {
   if (!iframe?.contentWindow) return null;
   try {
     return (
@@ -148,6 +152,61 @@ function tweenTiming(tween: RuntimeTween): { start: number; duration: number } {
     start: Number.isFinite(rawStart) ? rawStart : 0,
     duration: Number.isFinite(rawDur) ? rawDur : 0,
   };
+}
+
+export interface ResolvedRuntimeTween {
+  /** The live GSAP tween targeting the selector. */
+  tween: RuntimeTween;
+  /** The composition timeline that owns it. */
+  timeline: RuntimeTimeline;
+}
+
+/**
+ * Resolve the live tween targeting `selector` using the SAME all-timelines scan
+ * `readRuntimeKeyframes` uses, so read and write agree on "which tween". With
+ * `kind: "keyframe"` it skips zero-duration `set`s and prefers the tween whose
+ * range contains the playhead (matching the reader). With `kind: "set"` it picks
+ * the zero-duration `set`/hold instead. Returns null when none matches.
+ */
+export function resolveRuntimeTween(
+  iframe: HTMLIFrameElement | null,
+  selector: string,
+  kind: "keyframe" | "set",
+  compositionId?: string,
+): ResolvedRuntimeTween | null {
+  const timelines = timelinesOf(iframe);
+  if (!timelines) return null;
+
+  let targetEl: Element | null = null;
+  try {
+    targetEl = iframe?.contentDocument?.querySelector(selector) ?? null;
+  } catch {
+    return null;
+  }
+  if (!targetEl) return null;
+
+  const tlIds = compositionId
+    ? [compositionId]
+    : Object.keys(timelines).filter((k) => typeof timelines[k]?.getChildren === "function");
+
+  let first: ResolvedRuntimeTween | null = null;
+  for (const tlId of tlIds) {
+    const timeline = timelines[tlId];
+    if (!timeline?.getChildren) continue;
+    const now = typeof timeline.time === "function" ? timeline.time() : null;
+    for (const tween of timeline.getChildren(true)) {
+      if (!tween.vars || !matchesElement(tween, targetEl)) continue;
+      const dur = typeof tween.duration === "function" ? tween.duration() : 0;
+      const isSet = !(dur > 0);
+      if (kind === "set" ? !isSet : isSet) continue;
+      if (first === null) first = { tween, timeline };
+      if (kind === "keyframe" && now != null) {
+        const start = typeof tween.startTime === "function" ? tween.startTime() : 0;
+        if (now >= start - 1e-3 && now <= start + dur + 1e-3) return { tween, timeline };
+      }
+    }
+  }
+  return first;
 }
 
 /**
