@@ -27,7 +27,6 @@ import {
   truncateSnippet,
   stripJsComments,
   WINDOW_TIMELINE_ASSIGN_PATTERN,
-  TIMELINE_REGISTRY_ASSIGN_PATTERN,
 } from "../utils";
 
 // ── GSAP-specific types ────────────────────────────────────────────────────
@@ -852,41 +851,6 @@ export const gsapRules: LintRule<LintContext>[] = [
           snippet: truncateSnippet(content.slice(contextStart, contextEnd)),
         });
       }
-    }
-    return findings;
-  },
-
-  // gsap_studio_edit_blocked
-  // When a script both registers a timeline on window.__timelines AND contains
-  // GSAP mutation calls targeting element selectors, Studio's isElementGsapTargeted
-  // check returns true for those elements and silently skips saving drag/resize
-  // position changes back to source HTML.
-  ({ scripts }) => {
-    const findings: HyperframeLintFinding[] = [];
-    const GSAP_MUTATION_SELECTOR_RE = /\.\s*(?:set|to|from|fromTo)\s*\(\s*["']([#.][^"']+)["']/g;
-
-    for (const script of scripts) {
-      const content = stripJsComments(script.content);
-      if (!TIMELINE_REGISTRY_ASSIGN_PATTERN.test(content)) continue;
-
-      const targets = new Set<string>();
-      let match: RegExpExecArray | null;
-      const re = new RegExp(GSAP_MUTATION_SELECTOR_RE.source, "g");
-      while ((match = re.exec(content)) !== null) {
-        if (match[1]) targets.add(match[1]);
-      }
-      if (targets.size === 0) continue;
-
-      const selList = [...targets].map((s) => `"${s}"`).join(", ");
-      findings.push({
-        code: "gsap_studio_edit_blocked",
-        severity: "warning",
-        message: `GSAP tweens target ${selList} in a registered timeline. Studio cannot save drag/resize edits to these elements — the runtime skips write-back for any element that appears in a registered window.__timelines timeline.`,
-        fixHint:
-          "The hyperframes runtime registers timelines automatically. Do not add a manual window.__timelines script unless GSAP intentionally controls element positions. " +
-          "For initial visibility states, use CSS (e.g. opacity:0) instead of gsap.set(). " +
-          "If GSAP must own these elements' positions, avoid drag-editing them in Studio.",
-      });
     }
     return findings;
   },

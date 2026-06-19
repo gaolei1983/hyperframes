@@ -316,21 +316,49 @@ function stripStudioEditsFromTarget(document: Document, selector: string): numbe
   let stripped = 0;
   try {
     for (const el of document.querySelectorAll(selector)) {
-      if (!el.getAttribute("data-hf-studio-path-offset")) continue;
       if (!isHTMLElement(el)) continue;
       const htmlEl = el;
-      const originalTranslate = el.getAttribute("data-hf-studio-original-inline-translate");
-      htmlEl.style.removeProperty("--hf-studio-offset-x");
-      htmlEl.style.removeProperty("--hf-studio-offset-y");
-      if (originalTranslate) {
-        htmlEl.style.setProperty("translate", originalTranslate);
-      } else {
-        htmlEl.style.removeProperty("translate");
+      let touched = false;
+      // Manual path offset (--hf-studio-offset / translate) — a GSAP position tween
+      // now owns position, so the stale offset channel must go.
+      if (el.getAttribute("data-hf-studio-path-offset")) {
+        const originalTranslate = el.getAttribute("data-hf-studio-original-inline-translate");
+        htmlEl.style.removeProperty("--hf-studio-offset-x");
+        htmlEl.style.removeProperty("--hf-studio-offset-y");
+        if (originalTranslate) {
+          htmlEl.style.setProperty("translate", originalTranslate);
+        } else {
+          htmlEl.style.removeProperty("translate");
+        }
+        el.removeAttribute("data-hf-studio-path-offset");
+        el.removeAttribute("data-hf-studio-original-translate");
+        el.removeAttribute("data-hf-studio-original-inline-translate");
+        touched = true;
       }
-      el.removeAttribute("data-hf-studio-path-offset");
-      el.removeAttribute("data-hf-studio-original-translate");
-      el.removeAttribute("data-hf-studio-original-inline-translate");
-      stripped++;
+      // Manual rotation (--hf-studio-rotation / rotate) — likewise, a GSAP rotation
+      // set/tween now owns rotation, so clear the legacy CSS-var channel.
+      if (el.getAttribute("data-hf-studio-rotation")) {
+        const originalRotate = el.getAttribute("data-hf-studio-original-inline-rotate");
+        const originalOrigin = el.getAttribute("data-hf-studio-original-rotation-transform-origin");
+        htmlEl.style.removeProperty("--hf-studio-rotation");
+        if (originalRotate) {
+          htmlEl.style.setProperty("rotate", originalRotate);
+        } else {
+          htmlEl.style.removeProperty("rotate");
+        }
+        if (originalOrigin) {
+          htmlEl.style.setProperty("transform-origin", originalOrigin);
+        } else {
+          htmlEl.style.removeProperty("transform-origin");
+        }
+        el.removeAttribute("data-hf-studio-rotation");
+        el.removeAttribute("data-hf-studio-rotation-draft");
+        el.removeAttribute("data-hf-studio-original-rotate");
+        el.removeAttribute("data-hf-studio-original-inline-rotate");
+        el.removeAttribute("data-hf-studio-original-rotation-transform-origin");
+        touched = true;
+      }
+      if (touched) stripped++;
     }
   } catch {
     // Invalid selector — skip silently.
@@ -929,6 +957,17 @@ async function executeGsapMutationRecast(
     case "add": {
       if (body.fromProperties && body.method !== "fromTo") {
         return respond({ error: "fromProperties is only valid for method=fromTo" }, 400);
+      }
+      // A new position/rotation animation owns that channel — strip the matching
+      // legacy studio CSS var (--hf-studio-offset / --hf-studio-rotation) so it can't
+      // double with the tween, matching add-with-keyframes/replace-with-keyframes.
+      if (
+        Object.keys(body.properties).some((k) => {
+          const group = classifyPropertyGroup(k);
+          return group === "position" || group === "rotation";
+        })
+      ) {
+        stripStudioEditsFromTarget(block.document, body.targetSelector);
       }
       const result = addAnimationToScript(block.scriptText, {
         targetSelector: body.targetSelector,
