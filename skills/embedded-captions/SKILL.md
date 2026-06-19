@@ -227,7 +227,7 @@ track has its own, much simpler spec → **[references/rail.md](references/rail.
 | ------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
 | [references/rail.md](references/rail.md)                                 | **The rail track** — standard lower-third subtitle spec (the default; carries most text).                                          |
 | [references/composition-craft.md](references/composition-craft.md)       | **The embed-track playbook** — grouping, planes, climax pop, occlusion judgement, accumulation/persistence. Read before embedding. |
-| [dna/README.md](dna/README.md)                                           | **The DNA registry** — six scene-parameterized visual languages; how to pick.                                                      |
+| [dna/README.md](dna/README.md)                                           | **The DNA registry** — ten scene-parameterized visual languages; how to pick.                                                      |
 | [references/reference-bar.md](references/reference-bar.md)               | **The taste bar** — per-register world-class references + the 5 positive checks.                                                   |
 | [references/aesthetic-principles.md](references/aesthetic-principles.md) | **The 18 rules.** Beat Veed AI on taste. Read first.                                                                               |
 | [references/motion-vocabulary.md](references/motion-vocabulary.md)       | 10 named motion primitives + tone→timing lookup                                                                                    |
