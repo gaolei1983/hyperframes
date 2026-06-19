@@ -4,6 +4,7 @@ import type { DomEditSelection } from "../components/editor/domEditingTypes";
 import { applySoftReload, extractGsapScriptText } from "../utils/gsapSoftReload";
 import type { CutoverDeps } from "../utils/sdkCutover";
 import { updateKeyframeCacheFromParsed } from "./gsapKeyframeCacheHelpers";
+import { patchRuntimeTweenInPlace } from "./gsapRuntimePatch";
 import { createKeyedSerializer } from "./serializeByKey";
 import {
   GsapMutationHttpError,
@@ -41,6 +42,36 @@ async function mutateGsapScript(
   const result = (await res.json()) as MutationResult;
   if (!result.ok) throw new Error(`Failed to update GSAP in ${sourceFile}`);
   return result;
+}
+
+/**
+ * Sync the preview after a persisted commit. For a value-only edit
+ * (`options.instantPatch`), try the in-place runtime patch first: on success the
+ * preview is already correct, so we skip the reload entirely (instant). On `false`
+ * — or when no `instantPatch` is supplied — fall back to the existing soft/full
+ * reload. Pure (no React) so `runCommit`'s preview-sync decision is unit-testable.
+ */
+export function applyPreviewSync(
+  iframe: HTMLIFrameElement | null,
+  result: MutationResult,
+  options: CommitMutationOptions,
+  reloadPreview: () => void,
+): void {
+  if (options.instantPatch) {
+    const patched = patchRuntimeTweenInPlace(
+      iframe,
+      options.instantPatch.selector,
+      options.instantPatch.change,
+    );
+    // Patched in place — element is already correct on screen; no reload needed.
+    if (patched) return;
+    // Fall through to the soft/full reload path below.
+  }
+  if (options.softReload && result.scriptText) {
+    if (!applySoftReload(iframe, result.scriptText)) reloadPreview();
+  } else {
+    reloadPreview();
+  }
 }
 
 // oxfmt-ignore
@@ -82,15 +113,7 @@ export function useGsapScriptCommits({ projectIdRef, activeCompPath, previewIfra
     if (options.skipReload) return;
     if (result.parsed?.animations) updateKeyframeCacheFromParsed(result.parsed.animations, targetPath, selection.id ?? undefined, mutation);
     options.beforeReload?.();
-    let applied: "soft" | "full" = "full";
-    if (options.softReload && result.scriptText) {
-      applied = applySoftReload(previewIframeRef.current, result.scriptText, reloadPreview)
-        ? "soft"
-        : "full";
-      if (applied === "full") reloadPreview();
-    } else {
-      reloadPreview();
-    }
+    applyPreviewSync(previewIframeRef.current, result, options, reloadPreview);
     onCacheInvalidate();
   }, [projectIdRef, activeCompPath, previewIframeRef, editHistory, domEditSaveTimestampRef, reloadPreview, onCacheInvalidate, onFileContentChanged, showToast, forceReloadSdkSession]);
   // Every GSAP-script commit is a read-modify-write of one file. Overlapping
