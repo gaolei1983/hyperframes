@@ -16,10 +16,6 @@ interface StackFrame {
 
 const MAIN = "main";
 const EPS = 0.001;
-// Seconds to play past a restored/mirrored position so the composition repaints
-// (a bare paused seek doesn't re-render some compositions; pausing on the first
-// timeupdate fires before a paint).
-const RENDER_NUDGE = 0.2;
 
 export class SlideshowController {
   private stack: StackFrame[] = [{ sequenceId: MAIN, slideIndex: 0, fragmentIndex: -1 }];
@@ -156,39 +152,44 @@ export class SlideshowController {
   }
 
   /**
-   * Jump to hold time `t` and pause there — NO sustained playback, so slides
-   * never auto-progress. Seeks just before `t` and plays a short render-nudge
-   * ending at `t`: a bare paused seek doesn't repaint some compositions, and
-   * pausing on the first timeupdate fires before a paint. onTime() pauses at `t`
-   * and advances fragmentIndex when `t` is a fragment boundary.
+   * Jump to hold time `t` and hold there — deterministically, with NO sustained
+   * playback so a slide can never auto-progress.
+   *
+   * Seek to the EXACT target (so the first repainted frame is the correct one —
+   * seeking before it would flash a pre-target frame / the previous scene), then
+   * play and pause on the VERY FIRST timeupdate at-or-after `t`. A bare paused
+   * seek doesn't repaint some compositions, so one frame of playback is needed to
+   * force a paint — and `timeupdate` only fires from the playback clock (never on
+   * seek), so the first tick is guaranteed to be a painted frame. Bounding the
+   * hold to that single tick (rather than a fixed time window) means a missed or
+   * coarse timeupdate can't overrun the hold into the next fragment or scene.
+   * This is the determinism fix for the auto-progress flakiness.
    */
   private playTo(t: number): void {
-    // Seek to the EXACT target so the first repainted frame is the correct one —
-    // seeking BEFORE it (as a backward render-nudge) flashes a pre-target frame
-    // / the previous scene. Then play a short way PAST it so the composition
-    // actually repaints (a bare paused seek doesn't), and onTime() pauses there.
-    const slide = this.currentSlide;
     this.holdTarget = t;
-    this.holdAt = slide ? Math.min(t + RENDER_NUDGE, slide.end) : t + RENDER_NUDGE;
+    this.holdAt = t; // pause on the first tick at/after the exact target
     this.player.seek(t);
     this.player.play();
   }
 
   private onTime(tt: number): void {
-    if (this.holdAt !== null && tt >= this.holdAt - EPS) {
-      const target = this.holdTarget;
-      this.holdAt = null;
-      this.holdTarget = null;
-      // Advance fragmentIndex if the logical target is a fragment boundary.
-      const slide = this.currentSlide;
-      if (slide && target !== null) {
-        const fragIdx = slide.fragments.indexOf(target);
-        if (fragIdx !== -1) {
-          this.frame.fragmentIndex = fragIdx;
-          this.emitChange();
-        }
+    if (this.holdAt === null) return;
+    // First timeupdate at/after the seeked target → one frame has painted; pause.
+    if (tt < this.holdAt - EPS) return;
+    const target = this.holdTarget;
+    this.holdAt = null;
+    this.holdTarget = null;
+    // Pause FIRST so playback stops on this tick, before any change handlers run —
+    // leaving no window for a second timeupdate to advance the playhead.
+    this.player.pause();
+    // Advance fragmentIndex if the logical target is a fragment boundary.
+    const slide = this.currentSlide;
+    if (slide && target !== null) {
+      const fragIdx = slide.fragments.indexOf(target);
+      if (fragIdx !== -1) {
+        this.frame.fragmentIndex = fragIdx;
+        this.emitChange();
       }
-      this.player.pause();
     }
   }
 
