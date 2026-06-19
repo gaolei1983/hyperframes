@@ -85,15 +85,15 @@ The island is the single source of truth for slide order, notes, fragment hold-p
 }
 ```
 
-| Field                                       | Required | Notes                                                                                                                       |
-| ------------------------------------------- | -------- | --------------------------------------------------------------------------------------------------------------------------- |
-| `sceneId`                                   | yes      | Must match a scene's `data-composition-id` exactly. The lint rule resolves both `data-composition-id` and `.clip[id]`.      |
-| `notes`                                     | no       | Presenter-only text. Never shown to the audience.                                                                           |
-| `fragments`                                 | no       | Array of times (seconds) within the slide's `[start, end]` range — see Fragments below.                                     |
-| `hotspots`                                  | no       | Interactive overlays that trigger a branch — see Branching below.                                                           |
-| `startTime`                                 | no       | Optional. Override the matched scene's time bounds; defaults to the scene's start/end.                                      |
-| `endTime`                                   | no       | Optional. Override the matched scene's time bounds; defaults to the scene's start/end.                                      |
-| `ttsScript`, `ttsAudioUrl`, `ttsDurationMs` | no       | **Reserved.** Schema fields exist but TTS playback is not yet wired. Omit unless you are pre-populating for a future build. |
+| Field                                       | Required | Notes                                                                                                                                                   |
+| ------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `sceneId`                                   | yes      | Must match a scene's `data-composition-id` exactly (or provide explicit `startTime`/`endTime`). The lint rule resolves scenes by `data-composition-id`. |
+| `notes`                                     | no       | Presenter-only text. Never shown to the audience.                                                                                                       |
+| `fragments`                                 | no       | Array of times (seconds) within the slide's `[start, end]` range — see Fragments below.                                                                 |
+| `hotspots`                                  | no       | Interactive overlays that trigger a branch — see Branching below.                                                                                       |
+| `startTime`                                 | no       | Optional. Override the matched scene's time bounds; defaults to the scene's start/end.                                                                  |
+| `endTime`                                   | no       | Optional. Override the matched scene's time bounds; defaults to the scene's start/end.                                                                  |
+| `ttsScript`, `ttsAudioUrl`, `ttsDurationMs` | no       | **Reserved.** Schema fields exist but TTS playback is not yet wired. Omit unless you are pre-populating for a future build.                             |
 
 ### `SlideHotspot`
 
@@ -151,7 +151,7 @@ A fragment is a time (in seconds) within a slide's `[start, end]` range where th
 4. After the last fragment, Next plays to `slide.end` and holds.
 5. Next again advances to the next slide.
 
-Fragment times must be strictly inside `[start, end]`. The lint rule rejects fragments outside that range.
+Fragment times must fall within `[start, end]` (inclusive of both bounds). The lint rule rejects only fragments outside that range (`time < start` or `time > end`).
 
 Fragment times are **absolute composition-timeline positions** — the same coordinate space as `data-start` — not offsets relative to the scene's start.
 

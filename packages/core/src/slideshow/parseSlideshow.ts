@@ -9,12 +9,18 @@ import type {
 
 export const SLIDESHOW_ISLAND_TYPE = "application/hyperframes-slideshow+json";
 
-/** Builds the island <script> matcher. Capture group 1 = inner JSON. */
+/**
+ * Builds the island <script> matcher. Capture group 1 = inner JSON.
+ *
+ * Factory (fresh RegExp per call) on purpose: a RegExp with the `g` flag carries
+ * a mutable `lastIndex`, so callers that need `g` must call this each time rather
+ * than caching a shared instance.
+ */
 export function slideshowIslandRegex(flags = "i"): RegExp {
-  return new RegExp(
-    `<script[^>]*type=["']${SLIDESHOW_ISLAND_TYPE.replace(/[.+]/g, "\\$&")}["'][^>]*>([\\s\\S]*?)<\\/script>`,
-    flags,
-  );
+  // Escape ALL regex metacharacters in the constant (CodeQL flags the incomplete
+  // `\` escape). The constant has none today, but a complete escape is correct.
+  const escaped = SLIDESHOW_ISLAND_TYPE.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`<script[^>]*type=["']${escaped}["'][^>]*>([\\s\\S]*?)<\\/script>`, flags);
 }
 
 interface SceneRange {
