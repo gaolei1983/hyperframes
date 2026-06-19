@@ -15,7 +15,11 @@ import { usePlayerStore } from "../player/store/playerStore";
 import { readAllAnimatedProperties, readGsapProperty } from "./gsapRuntimeReaders";
 import {
   commitGsapPositionFromDrag,
+  commitStaticGsapPosition,
+  commitStaticGsapRotation,
   computeCurrentPercentage,
+  findPositionSetAnimation,
+  findRotationSetAnimation,
   materializeIfDynamic,
 } from "./gsapDragCommit";
 import { resolveTweenStart, resolveTweenDuration } from "../utils/globalTimeCompiler";
@@ -212,30 +216,38 @@ export async function tryGsapDragIntercept(
   );
 
   let posAnim = resolved?.anim ?? null;
+  let resolvedAnimations = resolved?.animations ?? animations;
   if (!posAnim) {
     posAnim = findGsapPositionAnimation(animations, selector);
     if (!posAnim && fetchFallbackAnimations) {
       const fresh = await fetchFallbackAnimations();
+      resolvedAnimations = fresh;
       posAnim = findGsapPositionAnimation(fresh, selector);
     }
   }
-  if (!posAnim) {
-    return false;
-  }
 
-  // The live runtime is authoritative; `selectedGsapAnimations` (and the fetch
-  // fallback) is an async server-parse that LAGS a delete-all, so `posAnim` can
-  // be a phantom of a just-deleted tween. If the live timeline has no non-hold
-  // tween for this element, the parse is stale — bail so the drag falls back to
-  // the CSS path instead of resurrecting the deleted animation from stale cache.
-  // Use the strict existence check (not a truthy keyframe read): a leftover hold
-  // `set` after a delete-all must NOT count as a live tween.
+  const gsapPos = readGsapPositionFromIframe(iframe, selector) ?? { x: 0, y: 0 };
+
+  // STATIC case (single source of truth = GSAP timeline): the element has no LIVE
+  // keyframed/tweened position motion. Use the strict non-hold check — a leftover
+  // position-hold `set` (after a delete-all, or a stale parse that lags it) must
+  // NOT count as live motion. Either way the position belongs in a
+  // `tl.set("#el",{x,y})`, not a keyframe conversion: re-nudge an existing set in
+  // place (idempotent), else add a new one. This also covers the stale-cache
+  // phantom — committing a set is correct because the element genuinely has no live motion.
   if (!hasNonHoldTweenForElement(iframe, selector)) {
-    return false;
+    const existingSet =
+      posAnim && posAnim.method === "set" && posAnim.targetSelector === selector
+        ? posAnim
+        : findPositionSetAnimation(resolvedAnimations, selector);
+    await commitStaticGsapPosition(selection, offset, gsapPos, selector, existingSet, {
+      commitMutation,
+      fetchAnimations: fetchFallbackAnimations,
+    });
+    return true;
   }
 
-  const gsapPos = readGsapPositionFromIframe(iframe, selector);
-  if (!gsapPos) {
+  if (!posAnim) {
     return false;
   }
 
@@ -450,6 +462,9 @@ export async function tryGsapRotationIntercept(
   commitMutation: GsapDragCommitCallbacks["commitMutation"],
   fetchFallbackAnimations?: () => Promise<GsapAnimation[]>,
 ): Promise<boolean> {
+  const selector = selectorFromSelection(selection);
+  if (!selector) return false;
+
   // Resolve the rotation-group tween, splitting legacy mixed tweens if needed.
   const resolved = await resolveGroupTween(
     "rotation",
@@ -458,6 +473,7 @@ export async function tryGsapRotationIntercept(
     commitMutation,
     fetchFallbackAnimations,
   );
+  const resolvedAnimations = resolved?.animations ?? animations;
 
   // Fallback: legacy heuristic for hand-written scripts
   let anim = resolved?.anim ?? null;
@@ -468,20 +484,27 @@ export async function tryGsapRotationIntercept(
       anim = fresh.find((a) => "rotation" in a.properties || a.keyframes) ?? null;
     }
   }
-  if (!anim) return false;
 
-  const selector = selectorFromSelection(selection);
-  if (!selector) return false;
+  // `angle` is the ABSOLUTE target rotation resolved by the gesture (gsap base +
+  // pointer sweep) or the inspector — so it IS the new rotation. No base re-add: the
+  // gesture's live preview already gsap.set this value (single source of truth).
+  const newRotation = Math.round(angle);
 
-  let gsapRotation = 0;
-  const gsap = getIframeGsap(iframe);
-  const rotEl = gsap ? queryIframeElement(iframe, selector) : null;
-  if (gsap && rotEl) {
-    gsapRotation = Number(gsap.getProperty(rotEl, "rotation")) || 0;
+  // STATIC case (single source of truth = GSAP timeline): no rotation tween, so the
+  // angle belongs in a `tl.set("#el",{rotation})`, not a keyframe conversion —
+  // mirroring the static position set. Idempotent: re-rotate updates an existing
+  // rotation set in place, else add a new one. This replaces the old
+  // `--hf-studio-rotation` CSS-var fallback (the same dual-channel bug class).
+  if (!anim) {
+    const existingSet = findRotationSetAnimation(resolvedAnimations, selector);
+    await commitStaticGsapRotation(selection, newRotation, selector, existingSet, {
+      commitMutation,
+      fetchAnimations: fetchFallbackAnimations,
+    });
+    return true;
   }
 
   const pct = computeCurrentPercentage(selection, anim);
-  const newRotation = Math.round(gsapRotation + angle);
 
   if (anim.hasUnresolvedKeyframes || anim.hasUnresolvedSelector) {
     const newId = await materializeIfDynamic(anim, iframe, commitMutation, selection);

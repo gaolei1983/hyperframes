@@ -39,15 +39,10 @@ export interface UseGsapAwareEditingParams {
     label: string,
   ) => void;
   // DOM fallbacks (from useDomEditCommits)
-  handleDomPathOffsetCommit: (
-    selection: DomEditSelection,
-    next: { x: number; y: number },
-  ) => Promise<void>;
   handleDomBoxSizeCommit: (
     selection: DomEditSelection,
     next: { width: number; height: number },
   ) => Promise<void>;
-  handleDomRotationCommit: (selection: DomEditSelection, next: { angle: number }) => Promise<void>;
   // GSAP script commit ops (from useGsapScriptCommits)
   addGsapAnimation: (
     sel: DomEditSelection,
@@ -89,9 +84,7 @@ export function useGsapAwareEditing({
   bumpGsapCache,
   makeFetchFallback,
   trackGsapInteractionFailure,
-  handleDomPathOffsetCommit,
   handleDomBoxSizeCommit,
-  handleDomRotationCommit,
   addGsapAnimation,
   convertToKeyframes,
   setArcPath,
@@ -108,7 +101,12 @@ export function useGsapAwareEditing({
       }
       if (STUDIO_GSAP_DRAG_INTERCEPT_ENABLED && gsapCommitMutation) {
         try {
-          const handled = await tryGsapDragIntercept(
+          // The GSAP timeline is the single source of truth for element position —
+          // for the top-level composition AND subcompositions. tryGsapDragIntercept
+          // resolves the element's OWN iframe/runtime + source file, so it handles
+          // tweened elements (keyframe mutations) and static ones (a `tl.set`) in
+          // either. It returns false only for a selectorless element — a no-op.
+          await tryGsapDragIntercept(
             selection,
             next,
             selectedGsapAnimations,
@@ -116,16 +114,13 @@ export function useGsapAwareEditing({
             gsapCommitMutation,
             makeFetchFallback(selection),
           );
-          if (handled) return;
         } catch (error) {
           trackGsapInteractionFailure(error, selection, "drag", "Move animated layer");
           throw error;
         }
       }
-      return handleDomPathOffsetCommit(selection, next);
     },
     [
-      handleDomPathOffsetCommit,
       selectedGsapAnimations,
       gsapCommitMutation,
       previewIframeRef,
@@ -169,7 +164,10 @@ export function useGsapAwareEditing({
     async (selection: DomEditSelection, next: { angle: number }) => {
       if (STUDIO_GSAP_DRAG_INTERCEPT_ENABLED && gsapCommitMutation) {
         try {
-          const handled = await tryGsapRotationIntercept(
+          // Single source of truth for rotation too: tryGsapRotationIntercept handles
+          // tweened elements (keyframes) and static ones (a tl.set), so there's no
+          // CSS-var fallback. It returns false only for a selectorless element (no-op).
+          await tryGsapRotationIntercept(
             selection,
             next.angle,
             selectedGsapAnimations,
@@ -177,16 +175,13 @@ export function useGsapAwareEditing({
             gsapCommitMutation,
             makeFetchFallback(selection),
           );
-          if (handled) return;
         } catch (error) {
           trackGsapInteractionFailure(error, selection, "rotation", "Rotate animated layer");
           throw error;
         }
       }
-      return handleDomRotationCommit(selection, next);
     },
     [
-      handleDomRotationCommit,
       selectedGsapAnimations,
       gsapCommitMutation,
       previewIframeRef,
