@@ -45,6 +45,10 @@ type DragState = {
 };
 
 const NODE_PX = 6; // node radius in screen pixels (kept constant across zoom)
+// Click-vs-drag cutoff in SCREEN pixels. Below this the pointer-up is a click
+// (select the keyframe); at or above it the gesture commits a move. Screen-space
+// (not composition px) so it behaves identically at any zoom.
+const DRAG_THRESHOLD_PX = 3;
 
 /** The element's layout-home center in composition coordinates. GSAP x/y (and
  *  motionPath coords) are offsets from this point, so the overlay adds it to
@@ -118,11 +122,21 @@ function useMotionPathData(
 ): {
   rect: Rect | null;
   geometry: MotionPathGeometry | null;
+  geometryResolved: boolean;
   visibleInPreview: boolean;
   home: { x: number; y: number } | null;
 } {
   const [rect, setRect] = useState<Rect | null>(null);
   const [geometry, setGeometry] = useState<MotionPathGeometry | null>(null);
+  // Which selector the current `geometry` was read for. Compared against the live
+  // `selector` DURING render so the "resolved" flag is correct on the very first
+  // render after a selection change — before the polling effect runs. Until the
+  // first read for the new selector lands, `geometry === null` means "unknown",
+  // not "no path", so the create-mode hint must stay hidden (otherwise it flashes
+  // over an element that already has a path during the new-selection → first-poll
+  // gap). A ref (not state) avoids an extra render and a stale-flag window.
+  const resolvedForRef = useRef<string | null>(null);
+  const geometryResolved = resolvedForRef.current === selector;
   // Whether the target element is actually painted on screen — the path hides when
   // it isn't (e.g. covered by a later scene), matching the selection overlay.
   const [visibleInPreview, setVisibleInPreview] = useState(true);
@@ -203,14 +217,21 @@ function useMotionPathData(
     const recompute = () => {
       const read = readRuntimeKeyframes(iframeRef.current, selector);
       const next = buildMotionPathGeometry(read);
-      setGeometry((prev) => (prev?.points === next?.points ? prev : next));
+      // Compare the discriminator too, not just coords: a degenerate transition
+      // (linear ⇄ arc with identical points) must re-render so the geometry kind
+      // — which drives node refs, add/remove affordances and commit routing —
+      // stays in sync. Points alone would keep the stale `kind`.
+      setGeometry((prev) =>
+        prev?.points === next?.points && prev?.kind === next?.kind ? prev : next,
+      );
+      resolvedForRef.current = selector;
     };
     recompute();
     const id = window.setInterval(recompute, 250);
     return () => window.clearInterval(id);
   }, [selector, iframeRef]);
 
-  return { rect, geometry, visibleInPreview, home };
+  return { rect, geometry, geometryResolved, visibleInPreview, home };
 }
 
 /**
@@ -236,7 +257,7 @@ export const MotionPathOverlay = memo(function MotionPathOverlay({
     handleGsapRemoveKeyframe,
     handleGsapDeleteAllForElement,
   } = useDomEditContext();
-  const { rect, geometry, visibleInPreview, home } = useMotionPathData(
+  const { rect, geometry, geometryResolved, visibleInPreview, home } = useMotionPathData(
     iframeRef,
     selectorFor(selection),
   );
@@ -252,35 +273,49 @@ export const MotionPathOverlay = memo(function MotionPathOverlay({
   const dragRef = useRef<DragState | null>(null);
 
   // Create mode: a selected element with no positional motion. A double-click on
-  // the canvas authors a new motionPath from the element to that point.
-  const createMode = !geometry && Boolean(selection?.element) && !isPlaying;
+  // the canvas authors a new motionPath from the element to that point. Gated on
+  // `geometryResolved` so a fresh selection's hint never flashes before the first
+  // runtime read confirms the element truly has no path (see useMotionPathData).
+  const createMode = geometryResolved && !geometry && Boolean(selection?.element) && !isPlaying;
+  const createSelector = createMode ? selectorFor(selection) : null;
+  const compW = compositionSize?.width ?? null;
   // fallow-ignore-next-line complexity
   useEffect(() => {
-    if (!createMode || !selection?.element || !compositionSize) return;
-    const targetSelector = selectorFor(selection);
-    if (!targetSelector) return;
+    if (!createSelector || !compW) return;
+    // Scope the create-mode listener to the preview pan-surface, not `window`: the
+    // surface is the only region a destination double-click is meaningful in, so
+    // this keeps the handler off the side panels and avoids leaking a global
+    // listener. Deps are primitives (selector string + composition dims) and the
+    // memoized `commitMutation` (stable via DomEditProvider's ref-backed
+    // useCallback), so the effect re-runs only on a genuine create-context change
+    // — never on an unrelated parent re-render, so no duplicate handlers.
+    const iframe = iframeRef.current;
+    const surface =
+      (iframe?.ownerDocument?.querySelector("[data-preview-pan-surface]") as HTMLElement | null) ??
+      null;
+    const target: HTMLElement | Window = surface ?? window;
     // fallow-ignore-next-line complexity
     const onDbl = (e: MouseEvent) => {
-      const iframe = iframeRef.current;
-      if (!iframe || !hasMotionPathPlugin(iframe)) return;
-      const r = iframe.getBoundingClientRect();
+      const frame = iframeRef.current;
+      if (!frame || !hasMotionPathPlugin(frame)) return;
+      const r = frame.getBoundingClientRect();
       if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) {
         return;
       }
       // Resolve the element LIVE from the current iframe document — the selected
       // node may be detached after a soft-reload, which would skew home.
-      const live = iframe.contentDocument?.querySelector(targetSelector);
-      if (!isPreviewHtmlElement(live, iframe)) return;
-      const sc = r.width / compositionSize.width;
+      const live = frame.contentDocument?.querySelector(createSelector);
+      if (!isPreviewHtmlElement(live, frame)) return;
+      const sc = r.width / compW;
       const elHome = elementHome(live);
       const px = Math.round((e.clientX - r.left) / sc - elHome.x);
       const py = Math.round((e.clientY - r.top) / sc - elHome.y);
       const t = Math.round(usePlayerStore.getState().currentTime * 100) / 100;
-      void commitCreatePath(targetSelector, t, px, py, commitMutation);
+      void commitCreatePath(createSelector, t, px, py, commitMutation);
     };
-    window.addEventListener("dblclick", onDbl);
-    return () => window.removeEventListener("dblclick", onDbl);
-  }, [createMode, selection, compositionSize, iframeRef, commitMutation]);
+    target.addEventListener("dblclick", onDbl as EventListener);
+    return () => target.removeEventListener("dblclick", onDbl as EventListener);
+  }, [createSelector, compW, iframeRef, commitMutation]);
 
   if (!rect || rect.width <= 0 || !compositionSize || compositionSize.width <= 0) return null;
   // Hide the whole overlay (path + create hint) when the element isn't painted —
@@ -406,7 +441,13 @@ export const MotionPathOverlay = memo(function MotionPathOverlay({
     const screenDy = e.clientY - d.startY;
     const x = Math.round(d.initX + screenDx / d.scale);
     const y = Math.round(d.initY + screenDy / d.scale);
-    if (x === Math.round(d.initX) && y === Math.round(d.initY)) {
+    // Click-vs-drag is decided in SCREEN space, not composition px: the old guard
+    // compared rounded comp-px, which at high zoom (scale ≫ 1) swallowed real
+    // multi-px screen drags whose sub-comp-px delta rounds to 0 → the node would
+    // never move. A screen-distance threshold registers any genuine pointer drag
+    // at any zoom; below it the gesture is a click (select + park the playhead).
+    const movedScreenPx = Math.hypot(screenDx, screenDy);
+    if (movedScreenPx < DRAG_THRESHOLD_PX) {
       // No drag → treat as a click: select this keyframe and park the playhead on
       // it. Selecting it makes the next drag MODIFY this keyframe (honored via
       // activeKeyframePct) instead of creating a new one.
@@ -417,6 +458,10 @@ export const MotionPathOverlay = memo(function MotionPathOverlay({
       }
       return; // no commit
     }
+    // A real drag that still rounds to the same integer comp-px (sub-px move at
+    // high zoom) would commit an identical value — a no-op undo entry. Skip the
+    // commit, but don't treat it as a click either (the user did drag).
+    if (x === Math.round(d.initX) && y === Math.round(d.initY)) return;
     void commitNode(d.ref, x, y, animId, commitMutation);
     // Park the playhead on the edited keyframe's time so the element previews AT
     // that keyframe. Without it, a playhead sitting before the tween renders the
