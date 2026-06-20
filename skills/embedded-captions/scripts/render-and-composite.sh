@@ -34,7 +34,7 @@ fi
 # Which compiler owns this project? Cinematic = make-composition.cjs (plan.json).
 # (Standard mode retired 2026-06-12 — rail-surface needs are served by theme
 # DNAs like "anchor"; legacy standard.json projects re-render from their
-# existing index.html or via the archived compiler in embedded-captions-archive.)
+# existing index.html.)
 compiler_for() {
   echo "make-composition.cjs"
 }
