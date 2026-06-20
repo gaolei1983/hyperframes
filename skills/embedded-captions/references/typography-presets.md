@@ -1,6 +1,6 @@
 # Typography Presets
 
-> **Orientation (read first).** The five preset names are **scaffolds** — `make-composition.cjs` accepts ANY string in `style` (it becomes `class="cap-<string>"`) and the real sizing lever is per-group `custom_css`; the live max-font formula is [composition-craft.md § The climax has to POP](composition-craft.md). Keep this file for its **font-size × column-width starting points** (a concrete lookup the formula doesn't give). Live identity routing is [CATALOG.md](../CATALOG.md) → [dna/](../dna/README.md) / [themes/](../themes/README.md).
+> **Orientation (read first).** The five preset names are **scaffolds** — `make-composition.cjs` accepts ANY string in `style` (it becomes `class="cap-<string>"`) and the real sizing lever is per-group `custom_css`; the live max-font formula is [composition-craft.md § The climax has to POP](composition-craft.md). Keep this file for its **font-size × column-width starting points** (a concrete lookup the formula doesn't give). Live identity routing is [CATALOG.md](../CATALOG.md) → [dna/](../identities/dna/README.md) / [themes/](../identities/themes/README.md).
 
 Five named styles corresponding to the `cap-*` CSS classes. Pick one per caption group in `plan.json` based on the line's semantic role.
 

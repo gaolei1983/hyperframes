@@ -71,7 +71,7 @@ node scripts/make-cinematic.cjs <project>   # blocks → plan.json → index.htm
 
 Generated for you: transcript-sequenced timings, accumulate-within-block, page-flip-between-blocks, the hero **LOCKUP** (a hero block's pre-context + HERO + post-context stack as ONE bonded composition centered on the subject — reading order top→bottom = spoken order by construction; context floats in FRONT while the hero embeds BEHIND = the depth sandwich; a mass rule keeps the hero dominating its context), the apex/minor split, fg fallback per safe-zones. _(Legacy `plan.template:"cinematic-cream"` maps to `dna:"cream"` automatically.)_
 
-**Theme (themed constitution)** — **read [themes/README.md](themes/README.md) FIRST** (paradigm/setpiece registries, linkages, hard rules, exact schema). Author `<project>/theme.json`: `dna`, `lines` (verbatim, transcript order, 1–5 words each — for `takeover` each line is one CARD), `minors` (emphasis words), `hero:{match}` (the climax word/phrase — leave it OUT of `lines` for embed setpieces, keep it IN for inline setpieces and panel+redact).
+**Theme (themed constitution)** — **read [themes/README.md](identities/themes/README.md) FIRST** (paradigm/setpiece registries, linkages, hard rules, exact schema). Author `<project>/theme.json`: `dna`, `lines` (verbatim, transcript order, 1–5 words each — for `takeover` each line is one CARD), `minors` (emphasis words), `hero:{match}` (the climax word/phrase — leave it OUT of `lines` for embed setpieces, keep it IN for inline setpieces and panel+redact).
 
 ```bash
 bash scripts/render-theme.sh <project>   # compiles (verbatim-completeness gate) + renders both layers + composites + plate reaction → final_fx.mp4
@@ -146,8 +146,8 @@ _(Matting is CPU-only — ~2 fps @1080p ≈ 2–3 min per 10s clip, budget for i
 
 **DNA registries.** Every identity is backed by one **DNA file** — its complete visual language (type, palette logic, motion grammar, hero orchestration), **parameterized per scene** (accent sampled from the footage, contact shadow along the measured light, depth-match blur, RMS-coupled hero amplitude). The 48 DNAs live in two registries, one per engine — you never browse DNAs to route:
 
-- **Cinematic** → the 10 column-flow languages in **[dna/](dna/README.md)**: `cream` `ink` `editorial` `keynote` `documentary` `loud` `neon` `glitch` `chrome` `velocity`. `dna/README.md` holds the full table + the `bandLuma × register` decision rule; `cinematic.json` takes `"dna":"<name>"`.
-- **Theme** → the 38 themed constitutions in **[themes/](themes/README.md)**: `anchor` `ordnance` `terminal` … (each a body paradigm × hero setpiece × front fx × plate reaction, composed from registries; incl. the verbatim-rail `anchor`, which replaced the retired Standard mode). `theme.json` takes `"dna":"<name>"`.
+- **Cinematic** → the 10 column-flow languages in **[dna/](identities/dna/README.md)**: `cream` `ink` `editorial` `keynote` `documentary` `loud` `neon` `glitch` `chrome` `velocity`. `dna/README.md` holds the full table + the `bandLuma × register` decision rule; `cinematic.json` takes `"dna":"<name>"`.
+- **Theme** → the 38 themed constitutions in **[themes/](identities/themes/README.md)**: `anchor` `ordnance` `terminal` … (each a body paradigm × hero setpiece × front fx × plate reaction, composed from registries; incl. the verbatim-rail `anchor`, which replaced the retired Standard mode). `theme.json` takes `"dna":"<name>"`.
 
 The engine generates the **hero three-act** from the DNA (no authoring needed): co-visible captions dim (setup) → per-letter entrance with amplitude ∝ spoken loudness (impact) → breathe + glow until exit (afterglow).
 
@@ -182,8 +182,8 @@ Grouped by when you reach for them; **read the aesthetic principles FIRST**, the
 | [references/typography-presets.md](references/typography-presets.md) | Font-size × column-width matrix (starting points).                                                                                             |
 | [references/typographic-moves.md](references/typographic-moves.md)   | Per-group typographic palette — the named moves + size-vs-length sanity.                                                                       |
 | [references/bespoke-vs-presets.md](references/bespoke-vs-presets.md) | Clone-and-tweak from the canonical example renders; when presets fall short.                                                                   |
-| [dna/README.md](dna/README.md)                                       | **Cinematic DNA registry** — the 10 scene-parameterized column-flow languages; how to pick.                                                    |
-| [themes/README.md](themes/README.md)                                 | **Theme registry** — the 38 themed constitutions + paradigm/setpiece registries, linkages, the `theme.json` schema.                            |
+| [dna/README.md](identities/dna/README.md)                            | **Cinematic DNA registry** — the 10 scene-parameterized column-flow languages; how to pick.                                                    |
+| [themes/README.md](identities/themes/README.md)                      | **Theme registry** — the 38 themed constitutions + paradigm/setpiece registries, linkages, the `theme.json` schema.                            |
 
 **4 · Gotcha store — by section, on failure**
 

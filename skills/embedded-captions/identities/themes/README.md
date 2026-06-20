@@ -14,7 +14,7 @@ theme DNA = body PARADIGM   how the transcript surface lives
           × front FX        flash / rings / sparks / scanband / crowdflash / paflash / seance / dopplerboom (fg, over subject)
           × PLATE budget    charge-dim (in-page) + punch/shake/grain (_postfx.sh)
                            — the ONLY sanctioned footage reaction; otherwise the
-                           video ships untouched ([../SKILL.md](../SKILL.md) § Non-negotiables)
+                           video ships untouched ([../SKILL.md](../../SKILL.md) § Non-negotiables)
           × LINKAGES        declarative theme interactions
 ```
 

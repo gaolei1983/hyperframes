@@ -1,6 +1,6 @@
 # Layout Heuristics
 
-> **Orientation (read first).** From the Cinematic engine's **template-era** model. Live routing is [CATALOG.md](../CATALOG.md) → [dna/](../dna/README.md) / [themes/](../themes/README.md). Still live and consumed by [make-composition.cjs](../scripts/make-composition.cjs): **crown geometry** (`crown` / `crown_position`), the **pillarbox safe-rect math**, the **gaze / looking-room** rule, and per-group `custom_css` — use them. `wall_position` planes are template-era (the engine derives layout from dna + crown). **Blend is locked per DNA** in the engine path (`plan.blend_mode` ignored); the `mix-blend-mode` advice below is the **hand-authored / clone-and-tweak** path only.
+> **Orientation (read first).** From the Cinematic engine's **template-era** model. Live routing is [CATALOG.md](../CATALOG.md) → [dna/](../identities/dna/README.md) / [themes/](../identities/themes/README.md). Still live and consumed by [make-composition.cjs](../scripts/make-composition.cjs): **crown geometry** (`crown` / `crown_position`), the **pillarbox safe-rect math**, the **gaze / looking-room** rule, and per-group `custom_css` — use them. `wall_position` planes are template-era (the engine derives layout from dna + crown). **Blend is locked per DNA** in the engine path (`plan.blend_mode` ignored); the `mix-blend-mode` advice below is the **hand-authored / clone-and-tweak** path only.
 
 How to pick `wall_position` / `crown_position` in plan.json.
 

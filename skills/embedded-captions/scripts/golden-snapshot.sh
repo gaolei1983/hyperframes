@@ -29,7 +29,7 @@ compile() { # $1=project dir -> prints hash, returns nonzero on compile failure
   { cat "$1/index.html" "$1/rail.html" "$1/_postfx.sh"; } 2>/dev/null | shasum -a 256 | cut -d' ' -f1
 }
 
-for t in "$SKILL"/themes/*.json; do
+for t in "$SKILL"/identities/themes/*.json; do
   name=$(basename "$t" .json); d="$OUT/$name"; mkdir -p "$d"
   cp "$A/transcript.json" "$A/safe-zones.json" "$d/"
   python3 -c "import json;a=json.load(open('$A/theme.auth.json'));a['dna']='$name';json.dump(a,open('$d/theme.json','w'))"

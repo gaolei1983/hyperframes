@@ -135,7 +135,7 @@ _letterpress_ (scale-press, no float, dead-still) · editorial = _the pen glides
 (burn words + line wipe + hero wipe-up, exits never move) · documentary = _burn and
 hold_ (motion's absence IS the language) · loud = _percussion_ (back-eased punches,
 alternating tilt, hero ripple that bumps every caption — never the footage; the
-footage ships untouched, [../SKILL.md](../SKILL.md) § Non-negotiables).
+footage ships untouched, [../SKILL.md](../../SKILL.md) § Non-negotiables).
 
 Rules inherited from hyperframes motion-principles: exits faster than entrances; vary
 ease families BETWEEN DNAs (not within one); `.out` enters, `.in` leaves; never two

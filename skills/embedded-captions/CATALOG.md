@@ -112,8 +112,8 @@ frame vs energetic type that still shares the frame with the subject).
 
 - Identities are **engine-locked** — no cross combos. Opening a new combo (e.g.
   another DNA under rail) is a validation event: render → user review → flip the
-  DNA's `deliveries.rail` flag (see dna/README.md).
-- New identities join via their family's registry rules (dna/README.md for
-  classic, themes/README.md for themed — "any input, zero hand-fixing" bar).
+  DNA's `deliveries.rail` flag (see identities/dna/README.md).
+- New identities join via their family's registry rules (identities/dna/README.md for
+  classic, identities/themes/README.md for themed — "any input, zero hand-fixing" bar).
 - The engines' internals (Cinematic/Theme compilers, gates, layers)
   are documented in their own files; this catalog is the only routing surface.

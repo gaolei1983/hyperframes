@@ -57,7 +57,7 @@ So use the caption-region luminance to **choose** a template that already fits �
 
 If the scene is bright and the cream/`screen` look washes out, that's the signal to switch to the **`anchor` theme** or **`ink`** (opaque surfaces built for bright scenes), not to recolour a Cinematic template into something it isn't.
 
-_(This table is the hand-authored / clone-and-tweak path. Canonical luma → blend/identity rule: [../dna/README.md](../dna/README.md) `bandLuma × register` pick + [../SKILL.md](../SKILL.md) pre-flight #3.)_
+_(This table is the hand-authored / clone-and-tweak path. Canonical luma → blend/identity rule: [../dna/README.md](../identities/dna/README.md) `bandLuma × register` pick + [../SKILL.md](../SKILL.md) pre-flight #3.)_
 
 ### "Hanging indent / outdent / letter-width tweak"
 

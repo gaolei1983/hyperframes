@@ -17,7 +17,7 @@ const path = require("path");
 const fs = require("fs");
 
 const SKILL_ROOT = path.resolve(__dirname, "..");
-const DNA_DIR = path.join(SKILL_ROOT, "dna");
+const DNA_DIR = path.join(SKILL_ROOT, "identities", "dna");
 
 // legacy template names → DNA (back-compat for existing plan.json files)
 const LEGACY = { "cinematic-cream": "cream" };

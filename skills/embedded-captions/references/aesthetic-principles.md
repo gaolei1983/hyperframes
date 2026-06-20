@@ -56,7 +56,7 @@ Italics are a **print** convention for flow inside a paragraph. On 24fps motion 
 - Foreign word
 - Thought vs spoken dichotomy
 
-These exceptions are where the catalog deliberately spends italic — sanctioned, not violations: the **editorial** DNA's _lowercase italic hero_ ([../dna/README.md](../dna/README.md)) and the `intro` (66px italic) / `dream` (82px italic) presets ([typography-presets.md](typography-presets.md)) signal memory / contemplation / lyricism, never stress.
+These exceptions are where the catalog deliberately spends italic — sanctioned, not violations: the **editorial** DNA's _lowercase italic hero_ ([../dna/README.md](../identities/dna/README.md)) and the `intro` (66px italic) / `dream` (82px italic) presets ([typography-presets.md](typography-presets.md)) signal memory / contemplation / lyricism, never stress.
 
 ### 9. Color discipline: one hue + neutrals
 

@@ -93,7 +93,7 @@ Self-check: sample the caption region's luminance in a real frame, then pick:
 
 Why (overlay→black on dark, screen→white on bright) + the `SHARP`→`ARP` real-bug example and the named template defaults: [failure-modes.md § Blending](failure-modes.md).
 
-_Path note: this manual blend pick is the **hand-authored `custom_css`** path. The dna/theme **engine** locks blend per DNA (`make-composition.cjs` ignores `plan.blend_mode`) — there you use luminance to **pick a fitting identity**, never to recolour ([SKILL.md](../SKILL.md) pre-flight #3, [dna/README.md](../dna/README.md))._
+_Path note: this manual blend pick is the **hand-authored `custom_css`** path. The dna/theme **engine** locks blend per DNA (`make-composition.cjs` ignores `plan.blend_mode`) — there you use luminance to **pick a fitting identity**, never to recolour ([SKILL.md](../SKILL.md) pre-flight #3, [dna/README.md](../identities/dna/README.md))._
 
 ### You animate `letter-spacing` on the word entry.
 

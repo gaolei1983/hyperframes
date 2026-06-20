@@ -70,7 +70,7 @@ Opposite problem: `screen(white, bright) ≈ white` regardless of the text — l
 
 **Fix**: If average luminance of the caption region exceeds 180/255, switch CSS to `mix-blend-mode: normal` with an opaque color. Sample the background pixels in the caption bbox across the clip to check.
 
-_Path note: these two blend entries are the **hand-authored / clone-and-tweak** path. The dna/theme **engine** locks blend per DNA (`make-composition.cjs` ignores `plan.blend_mode`) — pick a fitting identity by luminance there, never recolour ([SKILL.md](../SKILL.md) pre-flight #3, [dna/README.md](../dna/README.md))._
+_Path note: these two blend entries are the **hand-authored / clone-and-tweak** path. The dna/theme **engine** locks blend per DNA (`make-composition.cjs` ignores `plan.blend_mode`) — pick a fitting identity by luminance there, never recolour ([SKILL.md](../SKILL.md) pre-flight #3, [dna/README.md](../identities/dna/README.md))._
 
 ## Render pipeline
 

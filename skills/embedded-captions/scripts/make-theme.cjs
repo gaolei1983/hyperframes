@@ -44,7 +44,7 @@ const F = 1 / 24;
 
 // ---------- load inputs ----------
 const theme = JSON.parse(fs.readFileSync(path.join(PROJECT, "theme.json"), "utf8"));
-const dna = JSON.parse(fs.readFileSync(path.join(SKILL, "themes", theme.dna + ".json"), "utf8"));
+const dna = JSON.parse(fs.readFileSync(path.join(SKILL, "identities", "themes", theme.dna + ".json"), "utf8"));
 const transcript = JSON.parse(fs.readFileSync(path.join(PROJECT, "transcript.json"), "utf8"));
 const W = theme.width || 1280,
   H = theme.height || 720;
