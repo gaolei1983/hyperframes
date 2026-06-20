@@ -2002,6 +2002,31 @@ describe("keyframe mutations", () => {
     expect(updated).toBe("const x = 1;");
   });
 
+  it("addMotionPathToScript + hold-sync — holds (0,0) at t=0 when authored past t=0", () => {
+    // A motionPath authored at position > 0 parses with a first keyframe of (0,0).
+    // Without a pre-tween hold the element would snap to its CSS home at frame 0 and
+    // jump when the tween starts — this is why `add-motion-path` is hold-synced.
+    const script = `const tl = gsap.timeline({ paused: true });`;
+    const { script: withPath } = addMotionPathToScript(script, "#el", 2.0, 1.5, {
+      x: 300,
+      y: -100,
+    });
+    const synced = syncPositionHoldsBeforeKeyframes(withPath);
+    const hold = parseGsapScript(synced).animations.find((a) => a.method === "set");
+    expect(hold).toBeDefined();
+    expect(hold!.position).toBe(0);
+    expect(hold!.properties).toMatchObject({ x: 0, y: 0 });
+  });
+
+  it("addMotionPathToScript + hold-sync — adds no hold when authored at t=0", () => {
+    const script = `const tl = gsap.timeline({ paused: true });`;
+    const { script: withPath } = addMotionPathToScript(script, "#el", 0, 1.5, {
+      x: 300,
+      y: -100,
+    });
+    expect(syncPositionHoldsBeforeKeyframes(withPath)).not.toContain("hf-hold");
+  });
+
   // ── convertToKeyframesInScript ──────────────────────────────────────────
 
   it("convertToKeyframesInScript — converts flat to() tween", () => {

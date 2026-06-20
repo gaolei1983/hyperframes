@@ -1442,7 +1442,7 @@ export function initSandboxRuntimeModular(): void {
   // their layout box, so a split sibling would stack below the active half
   // instead of overlapping it. Positioned clips keep `visibility:hidden` (cheaper,
   // and avoids disturbing absolute media playback). Computed once per element.
-  const timedClipInFlow = new WeakMap<Element, boolean>();
+  let timedClipInFlow = new WeakMap<Element, boolean>();
   const isTimedClipInFlow = (el: HTMLElement): boolean => {
     const cached = timedClipInFlow.get(el);
     if (cached !== undefined) return cached;
@@ -1458,13 +1458,23 @@ export function initSandboxRuntimeModular(): void {
   // clamps to the timeline end would black out a child video that should still
   // show. `visibility:hidden` doesn't have this problem (a child can override it
   // with `visibility:visible`), so containers keep that and only leaves leave-flow.
-  const timedClipIsLeaf = new WeakMap<Element, boolean>();
+  let timedClipIsLeaf = new WeakMap<Element, boolean>();
   const isTimedClipLeaf = (el: HTMLElement): boolean => {
     const cached = timedClipIsLeaf.get(el);
     if (cached !== undefined) return cached;
     const leaf = el.querySelector("[data-start]") === null;
     timedClipIsLeaf.set(el, leaf);
     return leaf;
+  };
+
+  // Both caches key on live DOM facts that change when the timed-element set
+  // changes: leaf status flips when a clip gains/loses a nested `[data-start]`
+  // descendant (sub-composition load/unload, studio insert/delete), and a swapped
+  // element can reuse an identity whose in-flow status differs. WeakMap has no
+  // `clear()`, so drop both maps wholesale — re-derived lazily on next access.
+  const invalidateTimedClipCaches = () => {
+    timedClipInFlow = new WeakMap<Element, boolean>();
+    timedClipIsLeaf = new WeakMap<Element, boolean>();
   };
 
   const syncMediaForCurrentState = () => {
@@ -1573,7 +1583,7 @@ export function initSandboxRuntimeModular(): void {
         colorGradingRuntime?.setSourceVisibility(rawNode, isVisibleNow);
       }
       if (isVisibleNow) {
-        if (timedClipInFlow.get(rawNode)) rawNode.style.removeProperty("display");
+        if (isTimedClipInFlow(rawNode)) rawNode.style.removeProperty("display");
       } else if (isTimedClipInFlow(rawNode) && isTimedClipLeaf(rawNode)) {
         rawNode.style.display = "none";
       }
@@ -1638,6 +1648,10 @@ export function initSandboxRuntimeModular(): void {
     window.__clipManifest = payload;
 
     const currentSignature = computeClipTreeSignature();
+    if (clipTreeSignature !== currentSignature) {
+      // The timed-element set changed — leaf/in-flow caches may be stale.
+      invalidateTimedClipCaches();
+    }
     if (!window.__clipTree || clipTreeSignature !== currentSignature) {
       const runtimeWindow = window as Window & {
         __timelines?: Record<string, RuntimeTimelineLike | undefined>;

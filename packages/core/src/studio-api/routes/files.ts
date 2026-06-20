@@ -378,6 +378,18 @@ function keyframesWritePosition(
   );
 }
 
+// A studio rotation edit (--hf-studio-rotation / data-hf-studio-rotation) and a GSAP
+// rotation tween both drive rotate — keeping both stacks them. When a committed keyframe
+// set writes a rotation property, the tween owns rotation, so the stale CSS-var channel
+// must go (the position twin of this is `keyframesWritePosition`).
+function keyframesWriteRotation(
+  keyframes: Array<{ properties: Record<string, number | string> }>,
+): boolean {
+  return keyframes.some((kf) =>
+    Object.keys(kf.properties).some((k) => classifyPropertyGroup(k) === "rotation"),
+  );
+}
+
 function lastKeyframeOpacity(kfs: GsapAnimation["keyframes"]): number | string | undefined {
   if (!kfs) return undefined;
   for (let i = kfs.keyframes.length - 1; i >= 0; i--) {
@@ -596,6 +608,10 @@ type GsapMutationResult = string | { script: string; skippedSelectors: string[] 
 
 // Mutations that can change a position tween's first keyframe (value/existence/timing)
 // and therefore require the pre-keyframe hold-`set`s to be re-synced afterwards.
+// `syncPositionHoldsBeforeKeyframes` rebuilds all `hf-hold` sets from scratch: it acts
+// on every tween that has keyframes whose first percentage carries a position prop and
+// whose start is > 0. So any mutation that creates such a tween, retargets it, or moves
+// its start across the t=0 boundary must trigger a re-sync.
 const HOLD_SYNC_MUTATION_TYPES = new Set<string>([
   "add-keyframe",
   "update-keyframe",
@@ -608,6 +624,19 @@ const HOLD_SYNC_MUTATION_TYPES = new Set<string>([
   "update-motion-path-point",
   "add-motion-path-point",
   "remove-motion-path-point",
+  // Authors a fresh motionPath tween whose parsed first keyframe is (0,0); if it lands
+  // at position > 0 the element snaps home at t=0 without a pre-tween hold-`set`.
+  "add-motion-path",
+  // Can move a tween's `position` (start) across the t=0 boundary, which flips whether a
+  // keyframed position tween needs a hold (started at 0 → moved later, or vice versa).
+  "update-meta",
+  // Time-shift / time-scale tweens, which can move a keyframed position tween's start
+  // across t=0, flipping hold need; stale holds are not repositioned by these ops.
+  "shift-positions",
+  "scale-positions",
+  // Retargets keyframed position tweens to a cloned element's selector; the old hold is
+  // keyed to the prior selector, so holds must be rebuilt for the new target.
+  "split-animations",
   "delete",
   "delete-all-for-selector",
 ]);
@@ -1109,7 +1138,7 @@ async function executeGsapMutationRecast(
       return removeArcPathFromScript(block.scriptText, body.animationId);
     }
     case "add-with-keyframes": {
-      if (keyframesWritePosition(body.keyframes)) {
+      if (keyframesWritePosition(body.keyframes) || keyframesWriteRotation(body.keyframes)) {
         stripStudioEditsFromTarget(block.document, body.targetSelector);
       }
       const result = addAnimationWithKeyframesToScript(
@@ -1123,7 +1152,7 @@ async function executeGsapMutationRecast(
       return result.script;
     }
     case "replace-with-keyframes": {
-      if (keyframesWritePosition(body.keyframes)) {
+      if (keyframesWritePosition(body.keyframes) || keyframesWriteRotation(body.keyframes)) {
         stripStudioEditsFromTarget(block.document, body.targetSelector);
       }
       const script = removeAnimationFromScript(block.scriptText, body.animationId);
