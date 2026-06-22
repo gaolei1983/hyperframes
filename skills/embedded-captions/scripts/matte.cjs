@@ -196,14 +196,14 @@ async function main() {
     matteSrc = cfr;
   }
   const t0 = Date.now();
-  // Subject matte engine. DEFAULT = local hyperframes remove-background (u2net) — byte-stable,
-  // and the right call per the 5-model A/B (Bria isn't a universal win: it keeps mic booms that
-  // u2net drops). EC_MATTE=cloud OPTS IN to the HeyGen Background Removal API (real Bria GPU,
-  // /v3/background-removals via matte-cloud.cjs — self-contained REST, no extra binary). Any cloud
-  // failure (incl. missing credential) falls back to local, so the opt-in never breaks a render.
+  // Subject matte engine. DEFAULT = HeyGen Background Removal API (real Bria GPU,
+  // /v3/background-removals via matte-cloud.cjs — self-contained REST) WHENEVER a HeyGen
+  // credential is present; otherwise local hyperframes remove-background (u2net). EC_MATTE=local
+  // forces local; EC_MATTE=cloud forces a cloud attempt and surfaces why if it can't. Any cloud
+  // failure (incl. no credential) falls back to local, so a render never breaks.
   let cloudOk = false;
   const matteMode = (process.env.EC_MATTE || "").toLowerCase();
-  if (matteMode === "cloud") {
+  if (matteMode !== "local") {
     const cloud = require("./matte-cloud.cjs");
     const avail = cloud.available();
     if (avail.ok) {
@@ -214,9 +214,14 @@ async function main() {
       } catch (e) {
         console.error(`[matte] cloud matte failed (${e.message}) → falling back to local`);
       }
-    } else {
+    } else if (matteMode === "cloud") {
       console.error(
         `[matte] cloud matte requested but unavailable — ${avail.reason}\n[matte] → falling back to local hyperframes remove-background`,
+      );
+    } else if (avail.code === "no-cred") {
+      // default: cloud (HeyGen Bria) is preferred, but no HeyGen key is set — use local, nudge once.
+      console.error(
+        `[matte] HeyGen Bria cloud matte is the default when a key is set — none found, using local.\n[matte] ${avail.reason}`,
       );
     }
   }
