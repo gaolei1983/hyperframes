@@ -174,7 +174,7 @@ export function resolveStaticSeekFallback(opts: {
   clock: StaticSeekPlaybackClock;
   getPlaybackRate: () => number;
 }): PlaybackAdapter {
-  const { cache, warned, bestAdapter, effectiveDuration, docDuration } = opts;
+  const { cache, warned, bestAdapter, effectiveDuration } = opts;
   const cached = cache.current;
   if (cached?.player === bestAdapter && cached.duration === effectiveDuration) {
     return cached.adapter;
@@ -182,9 +182,6 @@ export function resolveStaticSeekFallback(opts: {
   cached?.adapter.pause();
   if (!warned.current) {
     warned.current = true;
-    console.warn(
-      `[useTimelinePlayer] Selected adapter duration (${getAdapterDuration(bestAdapter)}s) does not cover the document duration (${docDuration}s); falling back to seek-driven playback, which never starts media elements or WebAudio. Audio will not play in preview — extend the GSAP timeline to cover the declared data-duration.`,
-    );
   }
   const adapter = createStaticSeekPlaybackAdapter(
     bestAdapter,
