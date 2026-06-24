@@ -50,6 +50,14 @@ const transitionPrimitives = [
   "tilt-card",
 ] as const;
 
+const uiFlows = [
+  "ai-prompt-flow",
+  "checkout-flow",
+  "onboarding-stepper-flow",
+  "settings-toggle-flow",
+  "signup-flow",
+] as const;
+
 function readJson<T>(path: string): T {
   return JSON.parse(readFileSync(path, "utf-8")) as T;
 }
@@ -100,5 +108,9 @@ describe("remocn UI primitives catalog slice", () => {
       "transition-primitive",
       "transitions-dev-port",
     ]);
+  });
+
+  it("registers composed Remocn UI flows as reusable agent building blocks", () => {
+    expectRegisteredComponents(uiFlows, ["ui-flow", "remocn-port"]);
   });
 });

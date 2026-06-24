@@ -196,6 +196,26 @@
       "type": "hyperframes:component"
     },
     {
+      "name": "ai-prompt-flow",
+      "type": "hyperframes:component"
+    },
+    {
+      "name": "checkout-flow",
+      "type": "hyperframes:component"
+    },
+    {
+      "name": "onboarding-stepper-flow",
+      "type": "hyperframes:component"
+    },
+    {
+      "name": "settings-toggle-flow",
+      "type": "hyperframes:component"
+    },
+    {
+      "name": "signup-flow",
+      "type": "hyperframes:component"
+    },
+    {
       "name": "badge-pop",
       "type": "hyperframes:component"
     },

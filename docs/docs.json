@@ -273,6 +273,16 @@
             ]
           },
           {
+            "group": "UI Flows",
+            "pages": [
+              "catalog/components/ai-prompt-flow",
+              "catalog/components/checkout-flow",
+              "catalog/components/onboarding-stepper-flow",
+              "catalog/components/settings-toggle-flow",
+              "catalog/components/signup-flow"
+            ]
+          },
+          {
             "group": "Transition Primitives",
             "pages": [
               "catalog/components/badge-pop",

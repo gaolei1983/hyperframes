@@ -528,12 +528,13 @@ function main(): void {
     Showcases: 6,
     Data: 7,
     "UI Primitives": 8,
-    "Transition Primitives": 9,
-    "Motion Primitives": 10,
-    "Text Effects": 11,
-    Effects: 12,
-    Blocks: 13,
-    "Code Snippets": 14,
+    "UI Flows": 9,
+    "Transition Primitives": 10,
+    "Motion Primitives": 11,
+    "Text Effects": 12,
+    Effects: 13,
+    Blocks: 14,
+    "Code Snippets": 15,
   };
 
   // fallow-ignore-next-line complexity
@@ -548,6 +549,7 @@ function main(): void {
     // they group separately from the static code-snippet themes.
     if (tags.includes("code-animation")) return "Code Animations";
     if (tags.includes("ui-primitive")) return "UI Primitives";
+    if (tags.includes("ui-flow")) return "UI Flows";
     if (tags.includes("transition-primitive")) return "Transition Primitives";
     if (tags.includes("motion-primitive")) return "Motion Primitives";
     if (tags.includes("text-effect")) return "Text Effects";

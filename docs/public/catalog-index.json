@@ -14,6 +14,20 @@
         "preview": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/components/accordion.png"
     },
     {
+        "name": "ai-prompt-flow",
+        "type": "component",
+        "title": "AI Prompt Flow",
+        "description": "A composed AI prompt flow with prompt field, suggestion chips, generate action, and preview result card",
+        "tags": [
+            "ui-flow",
+            "remocn-port",
+            "ai",
+            "prompt"
+        ],
+        "href": "/catalog/components/ai-prompt-flow",
+        "preview": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/components/ai-prompt-flow.png"
+    },
+    {
         "name": "alert-dialog",
         "type": "component",
         "title": "Alert Dialog",
@@ -401,6 +415,20 @@
         ],
         "href": "/catalog/components/checkbox",
         "preview": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/components/checkbox.png"
+    },
+    {
+        "name": "checkout-flow",
+        "type": "component",
+        "title": "Checkout Flow",
+        "description": "A composed checkout flow with plan summary, payment field rows, total, and purchase action",
+        "tags": [
+            "ui-flow",
+            "remocn-port",
+            "checkout",
+            "commerce"
+        ],
+        "href": "/catalog/components/checkout-flow",
+        "preview": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/components/checkout-flow.png"
     },
     {
         "name": "chromatic-radial-split",
@@ -934,6 +962,20 @@
         "preview": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/blocks/nyc-paris-flight.png"
     },
     {
+        "name": "onboarding-stepper-flow",
+        "type": "component",
+        "title": "Onboarding Stepper Flow",
+        "description": "A composed onboarding flow with milestone rail, active step card, and next-action button",
+        "tags": [
+            "ui-flow",
+            "remocn-port",
+            "onboarding",
+            "stepper"
+        ],
+        "href": "/catalog/components/onboarding-stepper-flow",
+        "preview": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/components/onboarding-stepper-flow.png"
+    },
+    {
         "name": "page-slide",
         "type": "component",
         "title": "Page Slide",
@@ -1098,6 +1140,20 @@
         "preview": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/components/select.png"
     },
     {
+        "name": "settings-toggle-flow",
+        "type": "component",
+        "title": "Settings Toggle Flow",
+        "description": "A composed settings flow with preference rows, toggle switches, and active-state feedback",
+        "tags": [
+            "ui-flow",
+            "remocn-port",
+            "settings",
+            "toggle"
+        ],
+        "href": "/catalog/components/settings-toggle-flow",
+        "preview": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/components/settings-toggle-flow.png"
+    },
+    {
         "name": "sheet",
         "type": "component",
         "title": "Sheet",
@@ -1124,6 +1180,20 @@
         ],
         "href": "/catalog/components/shimmer-sweep",
         "preview": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/components/shimmer-sweep.png"
+    },
+    {
+        "name": "signup-flow",
+        "type": "component",
+        "title": "Signup Flow",
+        "description": "A composed signup flow with social action, email field, password field, and submit button",
+        "tags": [
+            "ui-flow",
+            "remocn-port",
+            "signup",
+            "form"
+        ],
+        "href": "/catalog/components/signup-flow",
+        "preview": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/components/signup-flow.png"
     },
     {
         "name": "simulated-cursor",

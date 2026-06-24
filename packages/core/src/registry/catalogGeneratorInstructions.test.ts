@@ -23,6 +23,11 @@ describe("catalog generator motion primitives group", () => {
     expect(generatorSource).toContain('tags.includes("ui-primitive")');
   });
 
+  it("groups composed remocn UI flows after low-level UI primitives", () => {
+    expect(generatorSource).toContain('"UI Flows"');
+    expect(generatorSource).toContain('tags.includes("ui-flow")');
+  });
+
   it("groups transitions.dev-style microinteractions before broader motion primitives", () => {
     expect(generatorSource).toContain('"Transition Primitives"');
     expect(generatorSource).toContain('tags.includes("transition-primitive")');
