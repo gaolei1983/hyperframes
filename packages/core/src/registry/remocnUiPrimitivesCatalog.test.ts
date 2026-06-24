@@ -173,6 +173,19 @@ const remainingRemocnComponents = [
   "zoom-through-transition",
 ] as const;
 
+const advancedHyperframesPrimitives = [
+  "arc-motion-path",
+  "bezier-callout-route",
+  "orbital-feature-path",
+  "svg-line-draw-loader",
+  "stagger-lattice",
+  "keyframe-scrub-stack",
+  "three-orbiting-cards",
+  "three-particle-ribbon",
+  "shader-displacement-panel",
+  "camera-rig-depth-stack",
+] as const;
+
 function readJson<T>(path: string): T {
   return JSON.parse(readFileSync(path, "utf-8")) as T;
 }
@@ -239,5 +252,9 @@ describe("remocn UI primitives catalog slice", () => {
 
   it("ports the remaining remocn showcase, effect, transition, and social entries", () => {
     expectRegisteredComponents(remainingRemocnComponents, ["remocn-port"]);
+  });
+
+  it("registers HyperFrames-native advanced motion primitives", () => {
+    expectRegisteredComponents(advancedHyperframesPrimitives, ["hyperframes-native"]);
   });
 });

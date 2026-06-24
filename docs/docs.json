@@ -471,6 +471,31 @@
               "catalog/blocks/code-snippet-visual-studio-dark",
               "catalog/blocks/code-snippet-visual-studio-light"
             ]
+          },
+          {
+            "group": "MotionPath Primitives",
+            "pages": [
+              "catalog/components/arc-motion-path",
+              "catalog/components/bezier-callout-route",
+              "catalog/components/orbital-feature-path"
+            ]
+          },
+          {
+            "group": "Advanced Motion",
+            "pages": [
+              "catalog/components/camera-rig-depth-stack",
+              "catalog/components/keyframe-scrub-stack",
+              "catalog/components/shader-displacement-panel",
+              "catalog/components/stagger-lattice",
+              "catalog/components/svg-line-draw-loader"
+            ]
+          },
+          {
+            "group": "3D Primitives",
+            "pages": [
+              "catalog/components/three-orbiting-cards",
+              "catalog/components/three-particle-ribbon"
+            ]
           }
         ]
       },

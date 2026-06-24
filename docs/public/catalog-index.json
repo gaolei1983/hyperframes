@@ -3277,5 +3277,133 @@
         ],
         "href": "/catalog/components/zoom-through-transition",
         "preview": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/components/zoom-through-transition.png"
+    },
+    {
+        "name": "arc-motion-path",
+        "type": "component",
+        "title": "Arc Motion Path",
+        "description": "A GSAP MotionPath primitive that flies a callout along a curved arc with autorotation.",
+        "tags": [
+            "motionpath",
+            "gsap-plugin",
+            "hyperframes-native"
+        ],
+        "href": "/catalog/components/arc-motion-path",
+        "preview": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/components/arc-motion-path.png"
+    },
+    {
+        "name": "bezier-callout-route",
+        "type": "component",
+        "title": "Bezier Callout Route",
+        "description": "A route-map primitive with multiple callouts traveling along cubic Bezier paths.",
+        "tags": [
+            "motionpath",
+            "gsap-plugin",
+            "hyperframes-native"
+        ],
+        "href": "/catalog/components/bezier-callout-route",
+        "preview": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/components/bezier-callout-route.png"
+    },
+    {
+        "name": "svg-line-draw-loader",
+        "type": "component",
+        "title": "SVG Line Draw Loader",
+        "description": "An Anime.js-style path drawing loader implemented as a seekable GSAP stroke timeline.",
+        "tags": [
+            "advanced-motion",
+            "anime-inspired",
+            "hyperframes-native"
+        ],
+        "href": "/catalog/components/svg-line-draw-loader",
+        "preview": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/components/svg-line-draw-loader.png"
+    },
+    {
+        "name": "stagger-lattice",
+        "type": "component",
+        "title": "Stagger Lattice",
+        "description": "A staggered grid reveal inspired by Anime.js v4 stagger utilities, implemented with GSAP for HyperFrames.",
+        "tags": [
+            "advanced-motion",
+            "anime-inspired",
+            "hyperframes-native"
+        ],
+        "href": "/catalog/components/stagger-lattice",
+        "preview": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/components/stagger-lattice.png"
+    },
+    {
+        "name": "keyframe-scrub-stack",
+        "type": "component",
+        "title": "Keyframe Scrub Stack",
+        "description": "A keyframe-sequenced stack of cards with offset timing and easing presets.",
+        "tags": [
+            "advanced-motion",
+            "anime-inspired",
+            "hyperframes-native"
+        ],
+        "href": "/catalog/components/keyframe-scrub-stack",
+        "preview": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/components/keyframe-scrub-stack.png"
+    },
+    {
+        "name": "three-orbiting-cards",
+        "type": "component",
+        "title": "Three Orbiting Cards",
+        "description": "A Three.js-powered orbit scene driven by a paused GSAP timeline for deterministic renders.",
+        "tags": [
+            "three-js",
+            "webgl",
+            "hyperframes-native"
+        ],
+        "href": "/catalog/components/three-orbiting-cards",
+        "preview": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/components/three-orbiting-cards.png"
+    },
+    {
+        "name": "three-particle-ribbon",
+        "type": "component",
+        "title": "Three Particle Ribbon",
+        "description": "A lightweight Three.js point ribbon with timeline-controlled camera and shader-like color drift.",
+        "tags": [
+            "three-js",
+            "webgl",
+            "hyperframes-native"
+        ],
+        "href": "/catalog/components/three-particle-ribbon",
+        "preview": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/components/three-particle-ribbon.png"
+    },
+    {
+        "name": "shader-displacement-panel",
+        "type": "component",
+        "title": "Shader Displacement Panel",
+        "description": "A CSS/WebGL-inspired displacement panel for premium scene reveals without a custom shader dependency.",
+        "tags": [
+            "advanced-motion",
+            "hyperframes-native"
+        ],
+        "href": "/catalog/components/shader-displacement-panel",
+        "preview": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/components/shader-displacement-panel.png"
+    },
+    {
+        "name": "camera-rig-depth-stack",
+        "type": "component",
+        "title": "Camera Rig Depth Stack",
+        "description": "A 3D camera-rig-style card stack with depth, parallax, and focus shift.",
+        "tags": [
+            "advanced-motion",
+            "hyperframes-native"
+        ],
+        "href": "/catalog/components/camera-rig-depth-stack",
+        "preview": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/components/camera-rig-depth-stack.png"
+    },
+    {
+        "name": "orbital-feature-path",
+        "type": "component",
+        "title": "Orbital Feature Path",
+        "description": "Feature chips orbit a product core on timed SVG motion paths.",
+        "tags": [
+            "motionpath",
+            "gsap-plugin",
+            "hyperframes-native"
+        ],
+        "href": "/catalog/components/orbital-feature-path",
+        "preview": "https://static.heygen.ai/hyperframes-oss/docs/images/catalog/components/orbital-feature-path.png"
     }
 ]

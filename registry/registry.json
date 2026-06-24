@@ -1158,6 +1158,46 @@
     {
       "name": "zoom-through-transition",
       "type": "hyperframes:component"
+    },
+    {
+      "name": "arc-motion-path",
+      "type": "hyperframes:component"
+    },
+    {
+      "name": "bezier-callout-route",
+      "type": "hyperframes:component"
+    },
+    {
+      "name": "svg-line-draw-loader",
+      "type": "hyperframes:component"
+    },
+    {
+      "name": "stagger-lattice",
+      "type": "hyperframes:component"
+    },
+    {
+      "name": "keyframe-scrub-stack",
+      "type": "hyperframes:component"
+    },
+    {
+      "name": "three-orbiting-cards",
+      "type": "hyperframes:component"
+    },
+    {
+      "name": "three-particle-ribbon",
+      "type": "hyperframes:component"
+    },
+    {
+      "name": "shader-displacement-panel",
+      "type": "hyperframes:component"
+    },
+    {
+      "name": "camera-rig-depth-stack",
+      "type": "hyperframes:component"
+    },
+    {
+      "name": "orbital-feature-path",
+      "type": "hyperframes:component"
     }
   ]
 }

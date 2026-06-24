@@ -163,20 +163,25 @@
           { "--hf-spot-x": "190px", "--hf-spot-y": "90px", duration: 3, ease: "sine.inOut" },
           startTime,
         );
-        tl.fromTo(
+        const particles_mesh_gradient_bg = gsap.utils.toArray(
           ".hf-remocn-mesh-gradient-bg .particle",
-          { "--hf-po": 0, "--hf-px": "0px", "--hf-py": "0px", "--hf-pr": "0deg" },
-          {
-            "--hf-po": 1,
-            "--hf-px": () => Math.cos(gsap.utils.wrap(0, 6.28, 1)) * 240 + "px",
-            "--hf-py": "-180px",
-            "--hf-pr": "360deg",
-            duration: 0.8,
-            stagger: 0.015,
-            ease: "power2.out",
-          },
-          startTime + 0.2,
         );
+        if (particles_mesh_gradient_bg.length) {
+          tl.fromTo(
+            particles_mesh_gradient_bg,
+            { "--hf-po": 0, "--hf-px": "0px", "--hf-py": "0px", "--hf-pr": "0deg" },
+            {
+              "--hf-po": 1,
+              "--hf-px": (i) => Math.cos(i * 0.83) * 250 + "px",
+              "--hf-py": (i) => -120 - Math.sin(i * 0.61) * 120 + "px",
+              "--hf-pr": (i) => 180 + i * 37 + "deg",
+              duration: 0.8,
+              stagger: 0.015,
+              ease: "power2.out",
+            },
+            startTime + 0.2,
+          );
+        }
         tl.set({}, {}, 5);
         window.__timelines = window.__timelines || {};
         window.__timelines["mesh-gradient-bg-demo"] = tl;
