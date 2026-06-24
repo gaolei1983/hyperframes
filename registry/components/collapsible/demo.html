@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <title>Collapsible - Demo</title>
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.14.2/dist/gsap.min.js"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+        width: 1920px;
+        height: 1080px;
+        overflow: hidden;
+      }
+      #demo {
+        width: 1920px;
+        height: 1080px;
+        display: grid;
+        place-items: center;
+        background: #f7f7f8;
+        font-family: Inter, system-ui, sans-serif;
+      }
+      .demo-frame {
+        display: grid;
+        place-items: center;
+        min-width: 760px;
+        min-height: 480px;
+        padding: 56px;
+      }
+      .hf-ui-collapsible {
+        --hf-collapse-open: 1;
+        width: 380px;
+        border: 1px solid #e4e4e7;
+        border-radius: 12px;
+        background: #fff;
+        color: #18181b;
+        font-family: Inter, system-ui, sans-serif;
+        overflow: hidden;
+      }
+      .hf-ui-collapsible header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 14px 16px;
+        font-weight: 850;
+      }
+      .hf-ui-collapsible header span {
+        transform: rotate(calc(var(--hf-collapse-open) * 180deg));
+      }
+      .hf-ui-collapsible div {
+        max-height: calc(var(--hf-collapse-open) * 120px);
+        overflow: hidden;
+        border-top: 1px solid #f1f1f4;
+      }
+      .hf-ui-collapsible p {
+        margin: 0;
+        padding: 14px 16px;
+        color: #71717a;
+        font-size: 14px;
+        line-height: 1.45;
+      }
+    </style>
+  </head>
+  <body>
+    <div
+      id="demo"
+      data-composition-id="collapsible-demo"
+      data-start="0"
+      data-width="1920"
+      data-height="1080"
+      data-duration="5"
+    >
+      <div class="demo-frame">
+        <section class="hf-ui-collapsible" data-state="open">
+          <header><strong>Advanced settings</strong><span>v</span></header>
+          <div><p>Enable motion blur, grain, and high quality interpolation.</p></div>
+        </section>
+      </div>
+      <script>
+        const tl = gsap.timeline({ paused: true });
+        const startTime = 0.45;
+        tl.fromTo(
+          ".hf-ui-collapsible",
+          { "--hf-collapse-open": 0 },
+          { "--hf-collapse-open": 1, duration: 0.38, ease: "power2.inOut" },
+          startTime,
+        );
+        tl.set({}, {}, 5);
+        window.__timelines = window.__timelines || {};
+        window.__timelines["collapsible-demo"] = tl;
+      </script>
+    </div>
+  </body>
+</html>
