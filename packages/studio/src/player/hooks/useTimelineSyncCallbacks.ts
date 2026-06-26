@@ -10,7 +10,7 @@
 
 import { useCallback } from "react";
 import { liveTime, usePlayerStore } from "../store/playerStore";
-import type { TimelineElement } from "../store/playerStore";
+import type { TimelineElement, DomClipChild } from "../store/playerStore";
 import type { PlaybackAdapter, ClipManifestClip, IframeWindow } from "../lib/playbackTypes";
 import {
   parseTimelineFromDOM,
@@ -85,8 +85,8 @@ export function useTimelineSyncCallbacks({
           | (Window & { __clipTree?: import("@hyperframes/core/runtime/clipTree").ClipTree })
           | null;
         const clipTree = iframeWin?.__clipTree;
+        const parentMap = new Map<string, string>();
         if (clipTree) {
-          const parentMap = new Map<string, string>();
           const walk = (nodes: typeof clipTree.roots) => {
             for (const node of nodes) {
               if (node.id && node.parentId) parentMap.set(node.id, node.parentId);
@@ -94,11 +94,48 @@ export function useTimelineSyncCallbacks({
             }
           };
           walk(clipTree.roots);
-          usePlayerStore.getState().setClipParentMap(parentMap);
         }
+
+        // Descend into each sub-composition host: its internal elements (group
+        // wrappers + their children) carry no `data-start`, so the clip
+        // tree/manifest never enumerate them. Surface them studio-side as DOM
+        // children + parent links so the timeline can expand a sub-comp/group
+        // row to show them. Manifest stays lean (timed clips only).
+        const domClipChildren: DomClipChild[] = [];
+        if (iframeDoc) {
+          for (const clip of data.clips) {
+            if (clip.kind !== "composition" || !clip.id) continue;
+            const hostEl = iframeDoc.getElementById(clip.id);
+            if (!hostEl) continue;
+            for (const groupEl of hostEl.querySelectorAll("[data-hf-group]")) {
+              if (!groupEl.id) continue;
+              const groupLabel = groupEl.getAttribute("data-hf-group") || groupEl.id;
+              domClipChildren.push({
+                id: groupEl.id,
+                parentId: clip.id,
+                hostId: clip.id,
+                label: groupLabel,
+              });
+              parentMap.set(groupEl.id, clip.id);
+              for (const child of Array.from(groupEl.children)) {
+                if (!child.id) continue;
+                domClipChildren.push({
+                  id: child.id,
+                  parentId: groupEl.id,
+                  hostId: clip.id,
+                  label: child.id,
+                });
+                parentMap.set(child.id, groupEl.id);
+              }
+            }
+          }
+        }
+        usePlayerStore.getState().setClipParentMap(parentMap);
+        usePlayerStore.getState().setDomClipChildren(domClipChildren);
       } catch {
-        // cross-origin or __clipTree not available — parentMap stays empty
+        // cross-origin or __clipTree not available — maps stay empty
       }
+
       const usedHostEls = new Set<Element>();
       const els: TimelineElement[] = filtered.map((clip, index) => {
         const hostEl = iframeDoc
