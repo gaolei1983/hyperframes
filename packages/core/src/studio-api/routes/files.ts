@@ -314,6 +314,25 @@ function extractGsapScriptBlock(html: string): {
   return null;
 }
 
+/**
+ * Remove every GSAP animation that targets `selector` from an HTML string's
+ * inline script. Used after unwrapping a group so its leftover `gsap.set("#id")`
+ * (the wrapper is gone) doesn't throw "target not found" on every preview run.
+ */
+function stripGsapAnimationsForSelector(html: string, selector: string): string {
+  const block = extractGsapScriptBlock(html);
+  if (!block) return html;
+  const parsed = parseGsapScriptAcorn(block.scriptText);
+  const matching = parsed.animations.filter((a) => a.targetSelector === selector);
+  if (matching.length === 0) return html;
+  let script = block.scriptText;
+  // Reverse so earlier removals don't shift the spans of later ones.
+  for (const anim of [...matching].reverse()) {
+    script = removeAnimationFromScript(script, anim.id);
+  }
+  return block.replaceScript(script);
+}
+
 function stripStudioEditsFromTarget(document: Document, selector: string): number {
   if (!selector) return 0;
   let stripped = 0;
@@ -1649,14 +1668,12 @@ export function registerFileRoutes(api: Hono, adapter: StudioApiAdapter): void {
     if (!result.unwrapped) {
       return c.json({ ok: false, changed: false, content: originalContent, path: ctx.filePath });
     }
-    return writeIfChanged(
-      c,
-      ctx.project.dir,
-      ctx.filePath,
-      ctx.absPath,
-      originalContent,
-      result.html,
-    );
+    // The wrapper is gone — strip any GSAP that targeted it, or a leftover
+    // `gsap.set("#group-1")` throws "target not found" every preview run.
+    const cleaned = result.unwrappedGroupId
+      ? stripGsapAnimationsForSelector(result.html, `#${result.unwrappedGroupId}`)
+      : result.html;
+    return writeIfChanged(c, ctx.project.dir, ctx.filePath, ctx.absPath, originalContent, cleaned);
   });
 
   api.post("/projects/:id/file-mutations/probe-element/*", async (c) => {
