@@ -7,6 +7,7 @@ import {
   addKeyframeToScript,
   removeAllKeyframesFromScript,
 } from "./gsapParser.js";
+import { addLabelToScript, removeLabelFromScript } from "./gsapWriterAcorn.js";
 
 // U4: recast parser/writer parity for the inline form
 // `window.__timelines["scene"] = gsap.timeline()` (the default server write path).
@@ -88,5 +89,20 @@ describe("recast — inline timeline write", () => {
     const id = parseGsapScript(sq).animations[0]!.id;
     const out = updateAnimationInScript(sq, id, { properties: { x: 9 } });
     expect(out).toContain("window.__timelines['s']");
+  });
+});
+
+// acorn writer: inline-form label add/remove must match member-rooted callees, not
+// just Identifier-rooted ones — else addLabel duplicates and removeLabel no-ops.
+describe("acorn — inline timeline labels", () => {
+  const src = `window.__timelines["scene"] = gsap.timeline({ paused: true });
+window.__timelines["scene"].to("#a", { x: 100, duration: 1 }, 0);`;
+
+  it("dedups addLabel (moves, not duplicates) and removes it on an inline timeline", () => {
+    let s = addLabelToScript(src, "intro", 0.5);
+    s = addLabelToScript(s, "intro", 0.9);
+    expect((s.match(/addLabel\(/g) ?? []).length).toBe(1);
+    expect(s).toContain('addLabel("intro", 0.9)');
+    expect((removeLabelFromScript(s, "intro").match(/addLabel\(/g) ?? []).length).toBe(0);
   });
 });
