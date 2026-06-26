@@ -193,6 +193,14 @@ export function useDomSelection({
       setDomEditSelection(nextSelection);
       setDomEditGroupSelections(nextGroup);
 
+      // Selecting something outside the drilled-into group exits the drill-in, so
+      // a later click on the group selects it as a unit again (non-sticky drill-in).
+      const activeGroup = activeGroupElementRef.current;
+      if (activeGroup && nextSelection && !activeGroup.contains(nextSelection.element)) {
+        activeGroupElementRef.current = null;
+        setActiveGroupElementState(null);
+      }
+
       if (nextSelection) {
         if (options?.revealPanel !== false) {
           setRightCollapsed(false);

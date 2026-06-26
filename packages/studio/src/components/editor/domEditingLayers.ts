@@ -309,8 +309,13 @@ export async function resolveDomEditSelection(
   if (!startEl) return null;
   const doc = startEl.ownerDocument;
 
-  const capture = resolveGroupCapture(startEl, options.activeGroupElement ?? null);
-  if (capture.kind === "out-of-scope") return null;
+  let capture = resolveGroupCapture(startEl, options.activeGroupElement ?? null);
+  if (capture.kind === "out-of-scope") {
+    // Drill-in is non-sticky: clicking/hovering OUTSIDE the drilled-into group
+    // exits it and resolves the target normally, rather than selecting nothing
+    // (which felt like "can't select anything" once you'd drilled in).
+    capture = resolveGroupCapture(startEl, null);
+  }
   let current: HTMLElement | null =
     capture.kind === "unit" ? capture.element : getSelectionCandidate(startEl, options);
   while (current && current !== doc.body && current !== doc.documentElement) {
