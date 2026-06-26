@@ -29,6 +29,7 @@ const pxToProjPersp = (px: number) => (px > 0 ? Math.max(2.2, Math.min(14, px / 
 export function Transform3DCube({
   pose,
   perspective = 0,
+  defaultPerspective = 0,
   z = 0,
   onPoseDraft,
   onPoseCommit,
@@ -41,6 +42,8 @@ export function Transform3DCube({
   pose: CubePose;
   /** Element's transformPerspective (px); drives the cube's foreshortening. */
   perspective?: number;
+  /** Comp-derived lens used for depth feedback before a perspective is committed. */
+  defaultPerspective?: number;
   /** Element's translateZ (px) — "depth", adjusted by scrolling over the cube. */
   z?: number;
   /** Fires on every drag move with the in-progress pose (parent live-previews). */
@@ -100,15 +103,16 @@ export function Transform3DCube({
 
   // Depth feedback: the cube scales like the element would — translateZ(z) under
   // a perspective lens P appears scaled by P/(P-z). Closer (z>0) reads bigger,
-  // farther (z<0) smaller. Fall back to the default lens so depth always reads in
-  // the gizmo even before a perspective is set.
-  const lens = perspective > 0 ? perspective : 800;
-  const depthScale = Math.max(0.4, Math.min(2.2, lens / (lens - shownZ)));
+  // farther (z<0) smaller. Use the committed perspective, else the comp-derived
+  // lens the panel is about to apply — same value in both, so the cube doesn't
+  // jump when the commit lands. If neither is known, skip the scale (no lens).
+  const lens = perspective > 0 ? perspective : defaultPerspective;
+  const depthScale = lens > 0 ? Math.max(0.4, Math.min(2.2, lens / (lens - shownZ))) : 1;
   const projOpts = {
     cx: CX,
     cy: CY,
     r: RADIUS * depthScale,
-    persp: pxToProjPersp(perspective),
+    persp: pxToProjPersp(lens),
   };
   // The element lives in CSS's screen-Y-down space; the cube projects Y-up. RotateX
   // and RotateZ act in planes that contain Y, so they read inverted in the gizmo

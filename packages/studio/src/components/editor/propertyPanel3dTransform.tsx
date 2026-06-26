@@ -6,9 +6,19 @@ import { KeyframeNavigation } from "./KeyframeNavigation";
 import { formatPxMetricValue, parsePxMetricValue, RESPONSIVE_GRID } from "./propertyPanelHelpers";
 import { Transform3DCube, type CubePose } from "./Transform3DCube";
 
-// Default perspective (px) applied when depth is first set, so translateZ is
-// visible. ~800px is a moderate lens — closer = stronger foreshortening.
-const DEFAULT_DEPTH_PERSPECTIVE = 800;
+// translateZ only foreshortens under a perspective lens. Rather than hardcode one
+// (an arbitrary px value reads wrong at different canvas sizes), derive it from the
+// element's composition: perspective = composition height puts the virtual camera
+// one comp-height back, a natural ~53° vertical FOV that looks the same whether the
+// canvas is 720p or 4K. Falls back to the element's own height only if the comp size
+// can't be read (detached/unmeasured), never to a fixed magic number.
+function naturalDepthPerspective(el: HTMLElement | null | undefined): number {
+  if (!el) return 0;
+  const root = el.closest("[data-hf-inner-root],[data-composition-id]") as HTMLElement | null;
+  const compHeight = root?.offsetHeight || el.ownerDocument?.documentElement?.clientHeight || 0;
+  if (compHeight > 0) return Math.round(compHeight);
+  return Math.round((el.offsetHeight || 0) * 4) || 0;
+}
 
 type KeyframeEntry = Array<{
   percentage: number;
@@ -74,6 +84,9 @@ function Cube3dControl({
     rotationY: gsapRuntimeValues.rotationY ?? 0,
     rotationZ: gsapRuntimeValues.rotationZ ?? 0,
   };
+  // Comp-derived lens (see naturalDepthPerspective) applied the first time depth is
+  // set, so the scene's foreshortening scales with the canvas instead of a magic 800.
+  const depthPerspective = naturalDepthPerspective(element.element);
   // Commit only the rotation axes the drag actually changed (each rounded to a
   // whole degree). Reuses the keyframe-aware animated-property commit, so a drag
   // at the playhead writes/updates a keyframe just like the numeric fields.
@@ -127,6 +140,7 @@ function Cube3dControl({
         <Transform3DCube
           pose={pose}
           perspective={gsapRuntimeValues.transformPerspective ?? 0}
+          defaultPerspective={depthPerspective}
           z={gsapRuntimeValues.z ?? 0}
           onPoseDraft={livePreview}
           onPoseCommit={commitPose}
@@ -135,21 +149,28 @@ function Cube3dControl({
               element,
               gsapRuntimeValues.transformPerspective
                 ? { z }
-                : { z, transformPerspective: DEFAULT_DEPTH_PERSPECTIVE },
+                : { z, transformPerspective: depthPerspective },
             )
           }
           onDepthCommit={(z) => {
-            // translateZ is invisible without a perspective lens — apply a sensible
-            // default the first time depth is set so scrolling visibly moves the
-            // element. The user can still fine-tune via the Perspective field.
-            if (!gsapRuntimeValues.transformPerspective) {
-              void onCommitAnimatedProperty(
-                element,
-                "transformPerspective",
-                DEFAULT_DEPTH_PERSPECTIVE,
-              );
+            const props: Record<string, number> = { z };
+            // translateZ is invisible without a perspective lens — apply the
+            // comp-derived lens the first time depth is set so scrolling visibly
+            // moves the element. The user can still fine-tune via the Perspective field.
+            if (!gsapRuntimeValues.transformPerspective && depthPerspective > 0) {
+              props.transformPerspective = depthPerspective;
             }
-            void onCommitAnimatedProperty(element, "z", z);
+            // ONE keyframe for z + perspective together. Two separate commits raced
+            // read-modify-write on the same script — the second read the base before
+            // the first landed and dropped the other prop, so depth/lens reverted
+            // after a seek (and the colliding writes could 404 the save). Batch like
+            // commitPose; fall back to per-prop only if no batched commit is wired.
+            if (onCommitAnimatedProperties) {
+              void onCommitAnimatedProperties(element, props);
+            } else {
+              for (const [p, v] of Object.entries(props))
+                void onCommitAnimatedProperty(element, p, v);
+            }
           }}
           onRecenter={recenter}
           onKeyframe={onKeyframe}
