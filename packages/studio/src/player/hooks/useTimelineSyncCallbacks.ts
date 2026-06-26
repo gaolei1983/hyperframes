@@ -107,27 +107,29 @@ export function useTimelineSyncCallbacks({
             if (clip.kind !== "composition" || !clip.id) continue;
             const hostEl = iframeDoc.getElementById(clip.id);
             if (!hostEl) continue;
-            for (const groupEl of hostEl.querySelectorAll("[data-hf-group]")) {
-              if (!groupEl.id) continue;
-              const groupLabel = groupEl.getAttribute("data-hf-group") || groupEl.id;
-              domClipChildren.push({
-                id: groupEl.id,
-                parentId: clip.id,
-                hostId: clip.id,
-                label: groupLabel,
-              });
-              parentMap.set(groupEl.id, clip.id);
-              for (const child of Array.from(groupEl.children)) {
-                if (!child.id) continue;
+            const hostId = clip.id;
+            const innerRoot = hostEl.querySelector("[data-hf-inner-root]") ?? hostEl;
+            // Collect the sub-comp's id'd descendants (grouped OR ungrouped) so they
+            // expand into timeline rows. Descends through id-less structural wrappers
+            // (the inlined sub-comp body), and one level into groups for drill-in.
+            const collect = (parentEl: Element, parentId: string) => {
+              for (const child of Array.from(parentEl.children)) {
+                if (!child.id) {
+                  collect(child, parentId); // unwrap id-less structural containers
+                  continue;
+                }
+                const isGroup = child.hasAttribute("data-hf-group");
                 domClipChildren.push({
                   id: child.id,
-                  parentId: groupEl.id,
-                  hostId: clip.id,
-                  label: child.id,
+                  parentId,
+                  hostId,
+                  label: isGroup ? child.getAttribute("data-hf-group") || child.id : child.id,
                 });
-                parentMap.set(child.id, groupEl.id);
+                parentMap.set(child.id, parentId);
+                if (isGroup) collect(child, child.id);
               }
-            }
+            };
+            collect(innerRoot, hostId);
           }
         }
         usePlayerStore.getState().setClipParentMap(parentMap);

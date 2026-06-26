@@ -126,8 +126,12 @@ describe("buildExpandedElements", () => {
   // Sub-comp internals (group + pills) have no data-start, so they're not in the
   // manifest. They arrive as DOM children and must still expand under their host.
   it("expands DOM-only sub-comp children (no manifest clip) under the host", () => {
-    const elements = [el({ id: "scene-host", start: 5, duration: 6, compositionSrc: "scene.html" })];
-    const manifest = [clip({ id: "scene-host", start: 5, duration: 6, compositionSrc: "scene.html" })];
+    const elements = [
+      el({ id: "scene-host", start: 5, duration: 6, compositionSrc: "scene.html" }),
+    ];
+    const manifest = [
+      clip({ id: "scene-host", start: 5, duration: 6, compositionSrc: "scene.html" }),
+    ];
     // pill-3 selected → parent group-1 → host scene-host. None of group-1/pills
     // are in the manifest; they're DOM children with parent links.
     const parentMap = new Map([
