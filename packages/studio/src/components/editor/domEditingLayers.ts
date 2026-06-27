@@ -3,6 +3,7 @@
  * for dom editing.
  */
 import type { PatchOperation } from "../../utils/sourcePatcher";
+import { groupScopedLayerRoots, resolveGroupCapture } from "./domEditingGroups";
 import type {
   DomEditCapabilities,
   DomEditContextOptions,
@@ -11,15 +12,14 @@ import type {
   DomEditTextField,
 } from "./domEditingTypes";
 import {
+  buildElementLabel,
   buildStableSelector,
   findClosestByAttribute,
   getCuratedComputedStyles,
   getDataAttributes,
   getInlineStyles,
-  getPreferredClassSelector,
   getSelectorIndex,
   getSourceFileForElement,
-  humanizeIdentifier,
   isHtmlElement,
   isIdentityTransform,
   isTextBearingTag,
@@ -275,31 +275,6 @@ export function resolveDomEditCapabilities(args: {
 
 // ─── Element label ────────────────────────────────────────────────────────────
 
-// fallow-ignore-next-line complexity
-export function buildElementLabel(el: HTMLElement): string {
-  const compositionId = el.getAttribute("data-composition-id");
-  if (compositionId && compositionId !== "main") {
-    return humanizeIdentifier(compositionId);
-  }
-
-  const compositionSrc =
-    el.getAttribute("data-composition-src") ?? el.getAttribute("data-composition-file");
-  if (compositionSrc) {
-    return humanizeIdentifier(compositionSrc);
-  }
-
-  if (el.id) return humanizeIdentifier(el.id);
-
-  const preferredClass = getPreferredClassSelector(el);
-  if (preferredClass) {
-    return humanizeIdentifier(preferredClass.replace(/^\./, ""));
-  }
-
-  const text = (el.textContent ?? "").trim().replace(/\s+/g, " ");
-  if (text) return text.length > 40 ? `${text.slice(0, 39)}…` : text;
-  return el.tagName.toLowerCase();
-}
-
 // ─── Source probe ────────────────────────────────────────────────────────────
 
 async function probeSourceElement(
@@ -334,7 +309,10 @@ export async function resolveDomEditSelection(
   if (!startEl) return null;
   const doc = startEl.ownerDocument;
 
-  let current: HTMLElement | null = getSelectionCandidate(startEl, options);
+  const capture = resolveGroupCapture(startEl, options.activeGroupElement ?? null);
+  if (capture.kind === "out-of-scope") return null;
+  let current: HTMLElement | null =
+    capture.kind === "unit" ? capture.element : getSelectionCandidate(startEl, options);
   while (current && current !== doc.body && current !== doc.documentElement) {
     const selector = buildStableSelector(current);
     const hfId = readHfId(current);
@@ -501,7 +479,8 @@ export function collectDomEditLayerItems(
     }
   };
 
-  visit(root, 0);
+  // Drilled into a group → show only its members; otherwise the whole tree.
+  for (const el of groupScopedLayerRoots(root, options.activeGroupElement ?? null)) visit(el, 0);
   return items;
 }
 
