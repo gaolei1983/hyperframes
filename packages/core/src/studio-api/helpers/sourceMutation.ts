@@ -407,6 +407,12 @@ export interface UnwrapElementsResult {
   /** The unwrapped wrapper's id, so callers can strip GSAP that targeted it
    *  (the wrapper is gone; a leftover `gsap.set("#id")` would throw at runtime). */
   unwrappedGroupId?: string;
+  /** Members (id'd children) with their absolute layout centres (post un-rebase),
+   *  so the caller can BAKE the group's GSAP transform into each member before
+   *  stripping it — otherwise the group's moves are lost on ungroup. */
+  members?: Array<{ id: string; cx: number; cy: number }>;
+  /** The wrapper's layout centre — the pivot for baking the group's rotation/scale. */
+  groupCenter?: { cx: number; cy: number };
 }
 
 export interface ElementRebase {
@@ -422,23 +428,6 @@ function getInlineStylePx(el: Element, property: string): number {
   if (!raw) return 0;
   const n = parseFloat(raw);
   return Number.isFinite(n) ? n : 0;
-}
-
-// Slug the group name ("Group 1" → "group-1") into a unique, valid element id.
-function uniqueGroupDomId(document: Document, groupId: string): string {
-  const base =
-    groupId
-      .trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "") || "group";
-  let id = base;
-  let n = 2;
-  while (document.getElementById(id)) {
-    id = `${base}-${n}`;
-    n += 1;
-  }
-  return id;
 }
 
 function setInlineLeftTop(el: HTMLElement, left: number, top: number): void {
@@ -574,15 +563,25 @@ export function unwrapElementsFromHtml(
   // Undo the rebase: child absolute position = child (rebased) + wrapper origin.
   const wLeft = getInlineStylePx(group, "left");
   const wTop = getInlineStylePx(group, "top");
+  const groupCenter = {
+    cx: wLeft + getInlineStylePx(group, "width") / 2,
+    cy: wTop + getInlineStylePx(group, "height") / 2,
+  };
 
   // Move children back to the wrapper's slot, preserving order.
+  const members: Array<{ id: string; cx: number; cy: number }> = [];
   for (const child of Array.from(group.children)) {
     if (isHTMLElement(child)) {
-      setInlineLeftTop(
-        child,
-        getInlineStylePx(child, "left") + wLeft,
-        getInlineStylePx(child, "top") + wTop,
-      );
+      const newLeft = getInlineStylePx(child, "left") + wLeft;
+      const newTop = getInlineStylePx(child, "top") + wTop;
+      setInlineLeftTop(child, newLeft, newTop);
+      if (child.id) {
+        members.push({
+          id: child.id,
+          cx: newLeft + getInlineStylePx(child, "width") / 2,
+          cy: newTop + getInlineStylePx(child, "height") / 2,
+        });
+      }
     }
     parent.insertBefore(child, group);
   }
@@ -593,5 +592,7 @@ export function unwrapElementsFromHtml(
     html: wrappedFragment ? document.body.innerHTML || "" : document.toString(),
     unwrapped: true,
     unwrappedGroupId: groupId,
+    members,
+    groupCenter,
   };
 }
