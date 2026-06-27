@@ -52,17 +52,10 @@ interface PropertyPanel3dTransformProps {
   onLivePreviewProps?: (element: DomEditSelection, props: Record<string, number>) => void;
 }
 
-type CommitAnimatedProperty = (
-  element: DomEditSelection,
-  property: string,
-  value: number,
-) => Promise<void>;
-
 /** The draggable cube + its commit/recenter/live-preview wiring. */
 function Cube3dControl({
   element,
   gsapRuntimeValues,
-  onCommitAnimatedProperty,
   onCommitAnimatedProperties,
   onLivePreviewProps,
   onKeyframe,
@@ -70,8 +63,7 @@ function Cube3dControl({
 }: {
   element: DomEditSelection;
   gsapRuntimeValues: Record<string, number>;
-  onCommitAnimatedProperty: CommitAnimatedProperty;
-  onCommitAnimatedProperties?: (
+  onCommitAnimatedProperties: (
     element: DomEditSelection,
     props: Record<string, number | string>,
   ) => Promise<void>;
@@ -105,13 +97,8 @@ function Cube3dControl({
     const axes = Object.keys(changedProps);
     if (axes.length === 0) return;
     // ONE keyframe for the whole pose change — avoids per-axis commits racing into
-    // adjacent duplicate keyframes. Fall back to per-axis if no batched commit.
-    if (onCommitAnimatedProperties) {
-      void onCommitAnimatedProperties(element, changedProps);
-    } else {
-      for (const [axis, v] of Object.entries(changedProps))
-        onCommitAnimatedProperty(element, axis, v);
-    }
+    // adjacent duplicate keyframes.
+    void onCommitAnimatedProperties(element, changedProps);
   };
   const recenter = () => {
     // ONE commit for the whole reset — six per-axis commits meant six soft-reloads
@@ -124,15 +111,10 @@ function Cube3dControl({
       scale: 1,
       transformPerspective: 0,
     };
-    if (onCommitAnimatedProperties) {
-      void onCommitAnimatedProperties(element, identity);
-    } else {
-      for (const [prop, v] of Object.entries(identity))
-        void onCommitAnimatedProperty(element, prop, v);
-    }
+    void onCommitAnimatedProperties(element, identity);
   };
   // Immediate element feedback while dragging — set the live transform without a
-  // source write; the release commits via onCommitAnimatedProperty.
+  // source write; the release commits via commitPose.
   const livePreview = (next: CubePose) =>
     onLivePreviewProps?.(element, {
       rotationX: next.rotationX,
@@ -186,12 +168,7 @@ function Cube3dControl({
             }
             // One commit for all props so the writes can't race read-modify-write on
             // the same script (which dropped a prop and reverted after a seek).
-            if (onCommitAnimatedProperties) {
-              void onCommitAnimatedProperties(element, props);
-            } else {
-              for (const [p, v] of Object.entries(props))
-                void onCommitAnimatedProperty(element, p, v);
-            }
+            void onCommitAnimatedProperties(element, props);
           }}
           onRecenter={recenter}
           onKeyframe={onKeyframe}
@@ -350,11 +327,10 @@ export function PropertyPanel3dTransform({
       </button>
       {collapsed ? null : (
         <>
-          {onCommitAnimatedProperty && (
+          {onCommitAnimatedProperties && (
             <Cube3dControl
               element={element}
               gsapRuntimeValues={gsapRuntimeValues}
-              onCommitAnimatedProperty={onCommitAnimatedProperty}
               onCommitAnimatedProperties={onCommitAnimatedProperties}
               onLivePreviewProps={onLivePreviewProps}
               keyframed={(gsapKeyframes ?? []).some(

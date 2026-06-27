@@ -103,9 +103,7 @@ export function initSandboxRuntimeModular(): void {
   // that per-frame warning destabilizes the preview and makes the selection
   // overlay stop tracking the pointer. Idempotent + best-effort.
   const ensureAutoMarkerNoop = (): void => {
-    const g = window.gsap as
-      | { registerPlugin?: (plugin: unknown) => void }
-      | undefined;
+    const g = window.gsap as { registerPlugin?: (plugin: unknown) => void } | undefined;
     const w = window as Window & { __hfAutoNoopRegistered?: boolean };
     if (!g?.registerPlugin || w.__hfAutoNoopRegistered) return;
     try {
