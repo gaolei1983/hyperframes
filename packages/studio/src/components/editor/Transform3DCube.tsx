@@ -71,8 +71,12 @@ export function Transform3DCube({
   // studio's "scroll = z depth" gesture-recording convention. A non-passive
   // listener is required so preventDefault can stop the panel from scrolling.
   const svgRef = useRef<SVGSVGElement | null>(null);
-  const depthRef = useRef({ z, onDepthDraft, onDepthCommit });
-  depthRef.current = { z, onDepthDraft, onDepthCommit };
+  // Perspective lens (committed, else the comp-derived default the panel will
+  // apply). Drives the cube's depth-scale feedback AND clamps the scroll so depth
+  // can't cross the lens. Defined here so the wheel handler can read it via the ref.
+  const lens = perspective > 0 ? perspective : defaultPerspective;
+  const depthRef = useRef({ z, onDepthDraft, onDepthCommit, lens });
+  depthRef.current = { z, onDepthDraft, onDepthCommit, lens };
   useEffect(() => {
     const el = svgRef.current;
     if (!el) return;
@@ -84,7 +88,14 @@ export function Transform3DCube({
       e.preventDefault();
       // ponytail: 0.25 px of Z per wheel-delta unit (~25px per notch); tune if
       // it feels too fast/slow. Scroll up (deltaY < 0) pushes toward the viewer.
-      pending = Math.round((pending ?? depthRef.current.z) - e.deltaY * 0.25);
+      let next = Math.round((pending ?? depthRef.current.z) - e.deltaY * 0.25);
+      // Clamp depth in front of the perspective lens. At z ≥ lens the element sits
+      // at/behind the virtual camera and the projection lens/(lens−z) blows up or
+      // inverts — that's the runaway "Z = 3195px past a 1080 lens". Cap just short
+      // of the lens; allow pushing well back (smaller) but not absurdly far.
+      const L = depthRef.current.lens;
+      if (L > 0) next = Math.max(Math.min(next, Math.round(L * 0.85)), Math.round(-L * 4));
+      pending = next;
       draft?.(pending);
       setDepthDraft(pending); // live-scale the cube while scrolling
       if (timer) clearTimeout(timer);
@@ -106,7 +117,6 @@ export function Transform3DCube({
   // farther (z<0) smaller. Use the committed perspective, else the comp-derived
   // lens the panel is about to apply — same value in both, so the cube doesn't
   // jump when the commit lands. If neither is known, skip the scale (no lens).
-  const lens = perspective > 0 ? perspective : defaultPerspective;
   const depthScale = lens > 0 ? Math.max(0.4, Math.min(2.2, lens / (lens - shownZ))) : 1;
   const projOpts = {
     cx: CX,
